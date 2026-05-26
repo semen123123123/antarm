@@ -27,7 +27,7 @@ export default function ProductCard({ product, dark = false, solid = false, ligh
       boxShadow: light ? '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)' : undefined,
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
+      height: '100%',
     }}
     onMouseEnter={e => {
       e.currentTarget.style.background = hoverBg;
@@ -113,7 +113,8 @@ export default function ProductCard({ product, dark = false, solid = false, ligh
         </div>
       </Link>
 
-      <div style={{ padding: 16, textAlign: 'center', width: '100%' }}>
+      <div style={{ padding: 16, textAlign: 'center', width: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        {/* Product name - fixed 2 lines */}
         <Link to={`/product/${product.slug}`}>
           <h3 style={{
             fontSize: 15,
@@ -121,6 +122,11 @@ export default function ProductCard({ product, dark = false, solid = false, ligh
             marginBottom: 6,
             lineHeight: 1.3,
             minHeight: 40,
+            maxHeight: 40,
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
             color: textPrimary,
             transition: 'color 0.2s',
           }}>
@@ -128,23 +134,27 @@ export default function ProductCard({ product, dark = false, solid = false, ligh
           </h3>
         </Link>
 
+        {/* SKU - fixed height */}
         <p style={{
           fontSize: 12,
           fontFamily: 'var(--font-mono)',
           color: textSecondary,
           marginBottom: 8,
+          height: 16,
+          margin: '0 0 8px',
         }}>
           {product.sku}
         </p>
 
-        {/* Price - centered */}
+        {/* Price - fixed height, always reserves space for oldPrice */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 4,
+          gap: 2,
           marginBottom: 12,
+          height: 42,
         }}>
           <span style={{
             fontSize: 20,
@@ -155,40 +165,24 @@ export default function ProductCard({ product, dark = false, solid = false, ligh
           }}>
             {product.price.toLocaleString('ru-RU')} ₽
           </span>
-          {product.oldPrice && (
-            <span style={{
-              fontSize: 14,
-              fontFamily: 'var(--font-mono)',
-              color: dark ? 'rgba(255,255,255,0.4)' : 'var(--text-old-price)',
-              textDecoration: 'line-through',
-              textAlign: 'center',
-            }}>
-              {product.oldPrice.toLocaleString('ru-RU')} ₽
-            </span>
-          )}
+          <span style={{
+            fontSize: 14,
+            fontFamily: 'var(--font-mono)',
+            color: product.oldPrice ? (dark ? 'rgba(255,255,255,0.4)' : 'var(--text-old-price)') : 'transparent',
+            textDecoration: product.oldPrice ? 'line-through' : 'none',
+            textAlign: 'center',
+            height: 18,
+            visibility: product.oldPrice ? 'visible' : 'hidden',
+          }}>
+            {product.oldPrice ? `${product.oldPrice.toLocaleString('ru-RU')} ₽` : '—'}
+          </span>
         </div>
 
-        {/* Rating - only shows if product has real user reviews */}
-        {(product.reviews && product.reviews > 0 && product.rating && product.rating > 0) && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            marginBottom: 8,
-            fontSize: 13,
-            color: textSecondary,
-          }}>
-            <span style={{ color: '#f59e0b' }}>
-              {'★'.repeat(Math.round(product.rating || 0))}{'☆'.repeat(5 - Math.round(product.rating || 0))}
-            </span>
-            <span style={{ fontWeight: 600, color: textPrimary }}>{Number(product.rating).toFixed(1)}</span>
-            <span>({product.reviews})</span>
-          </div>
-        )}
+        {/* Spacer to push buttons to bottom */}
+        <div style={{ flex: 1 }} />
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+        {/* Actions - fixed at bottom */}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', paddingTop: 8 }}>
           <button
             className="btn btn-primary"
             style={{

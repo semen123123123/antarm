@@ -327,75 +327,69 @@ export default function Home() {
             }}
           >
             {(() => {
-              const categoryData = {
-                'takticheskoe-snaryazhenie': { label: 'Тактическое снаряжение', image: '/img/bronya.jpg' },
-                'ohota-rybalka-turizm':      { label: 'Охота — рыбалка, туризм', image: '/img/ohota.jpg' },
-                'zootovary':                 { label: 'Зоотовары', image: '/img/osheinik.jpg' },
-                'odezhda':                   { label: 'Одежда', image: '/img/clothes.jpg' },
+              const categoryImages = {
+                'takticheskoe-snaryazhenie': '/img/bronya.jpg',
+                'ohota-rybalka-turizm': '/img/ohota.jpg',
+                'zootovary': '/img/osheinik.jpg',
+                'odezhda': '/img/clothes.jpg',
+              };
+              const categoryNames = {
+                'takticheskoe-snaryazhenie': 'Тактическое снаряжение',
+                'ohota-rybalka-turizm': 'Охота — рыбалка, туризм',
+                'zootovary': 'Зоотовары',
+                'odezhda': 'Одежда',
               };
               const slugOrder = ['takticheskoe-snaryazhenie', 'ohota-rybalka-turizm', 'zootovary', 'odezhda'];
               return slugOrder.map((slug, i) => {
-                const cat = categoryData[slug];
                 const delay = `${i * 0.1}s`;
                 return (
                   <Link
                     key={slug}
                     to={`/category/${slug}`}
-                    style={{
-                      textDecoration: 'none',
-                      borderRadius: '16px',
-                      overflow: 'hidden',
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    <div style={{
                       background: '#fff',
-                      border: '1px solid #e0e0e0',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      borderRadius: '16px',
+                      padding: '52px 28px 44px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
+                      gap: 20,
+                      height: '100%',
+                      transition: `all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}`,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)',
+                      position: 'relative',
+                      overflow: 'hidden',
                       opacity: catVisible ? 1 : 0,
                       transform: catVisible ? 'translateY(0)' : 'translateY(30px)',
-                      transition: `all 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${delay}`,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                     }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'scale(1.02)';
-                      e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.1)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-                    }}
-                  >
-                    <div style={{
-                      padding: '20px 16px 0',
-                      display: 'flex',
-                      justifyContent: 'center',
-                    }}>
-                      <img
-                        src={cat.image}
-                        alt={cat.label}
-                        style={{
-                          width: 80,
-                          height: 80,
-                          borderRadius: '12px',
-                          objectFit: 'cover',
-                          display: 'block',
-                        }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'translateY(-8px) scale(1.03)';
+                        e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)';
+                        e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)';
+                      }}
+                    >
+                      <img src={categoryImages[slug]} alt={categoryNames[slug]}
+                        style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }}
                       />
-                    </div>
-                    <div style={{
-                      padding: '12px 12px 16px',
-                      textAlign: 'center',
-                    }}>
-                      <h3 style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: '#333',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        margin: 0,
-                        lineHeight: 1.3,
-                      }}>
-                        {cat.label}
-                      </h3>
+                      <div style={{ textAlign: 'center' }}>
+                        <h3 style={{
+                          fontSize: 17,
+                          fontWeight: 700,
+                          color: '#2a2a2a',
+                          marginBottom: 6,
+                          letterSpacing: '0.01em',
+                        }}>
+                          {categoryNames[slug]}
+                        </h3>
+                      </div>
                     </div>
                   </Link>
                 );

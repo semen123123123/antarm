@@ -262,54 +262,49 @@ export default function Checkout() {
     setSubmitting(true);
     setError('');
     try {
-      const orderData = {
-        customer_name: formData.name,
-        customer_email: formData.email,
-        customer_phone: formData.phone,
-        delivery_method: deliveryMethod,
-        delivery_address: deliveryMethod === 'pickup' ? '' : formData.address,
-        delivery_cost: deliveryCost,
-        payment_method: paymentMethod,
-        items: cartItems.map(item => ({
-          product_id: item.id,
-          product_name: item.product.name,
-          quantity: item.qty,
-          price: item.product.price,
-          size: item.size || null,
-        })),
-        subtotal,
-        total,
-        promo_code: promoCode || null,
-        promo_discount: promoDiscount || 0,
-        comment: formData.comment,
-      };
+      const orderItems = cartItems.map(item => ({
+        id: item.id,
+        quantity: item.qty,
+        size: item.size || null,
+      }));
 
-      // Пробуем отправить на сервер
-      const result = await sendOrder(orderData);
+      // 1. Initialize payment via CloudPayments
+      const paymentRes = await fetch('/api/init-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cart: orderItems,
+          email: formData.email,
+          phone: formData.phone,
+          deliveryMethod,
+          deliveryAddress: deliveryMethod === 'pickup' ? '' : formData.address,
+          comment: formData.comment,
+        }),
+      });
 
-      if (result.ok) {
-        // Успех — очищаем корзину и показываем подтверждение
-        setOrderId(result.id);
-        clearCart();
-        setStep(4);
-      } else {
-        // Сервер недоступен — сохраняем локально
-        try {
-          const raw = localStorage.getItem(ORDER_STORAGE_KEY);
-          const pending = raw ? JSON.parse(raw) : [];
-          pending.push(orderData);
-          localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(pending));
-          setPendingOrderCount(pending.length);
-        } catch { /* ignore */ }
+      const paymentData = await paymentRes.json();
 
-        // Показываем успех — заказ сохранён и отправится автоматически
-        const orderId = Date.now(); // временный ID для отображения
-        setOrderId(orderId);
-        clearCart();
-        setStep(4);
+      if (!paymentRes.ok) {
+        throw new Error(paymentData.error || 'Payment initialization failed');
       }
+
+      if (paymentData.paymentUrl) {
+        // Redirect to CloudPayments payment page
+        localStorage.setItem('antarm-current-order', JSON.stringify({
+          orderId: paymentData.orderId,
+          total: paymentData.total,
+        }));
+        window.location.href = paymentData.paymentUrl;
+        return;
+      }
+
+      // CloudPayments not configured — order created but manual payment
+      setOrderId(paymentData.orderId);
+      clearCart();
+      setStep(4);
     } catch (err) {
-      // Фоллбэк — если что-то пошло совсем не так, всё равно сохраняем
+      // Fallback to local order creation
+      console.error('Payment init error:', err);
       try {
         const orderData = {
           customer_name: formData.name,
@@ -332,14 +327,14 @@ export default function Checkout() {
           promo_discount: promoDiscount || 0,
           comment: formData.comment,
         };
-        const raw = localStorage.getItem(ORDER_STORAGE_KEY);
-        const pending = raw ? JSON.parse(raw) : [];
-        pending.push(orderData);
-        localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(pending));
-        setPendingOrderCount(pending.length);
-        setOrderId(Date.now());
-        clearCart();
-        setStep(4);
+        const result = await sendOrder(orderData);
+        if (result.ok) {
+          setOrderId(result.id);
+          clearCart();
+          setStep(4);
+        } else {
+          throw new Error(result.error);
+        }
       } catch (innerErr) {
         setError('Не удалось оформить заказ. Попробуйте ещё раз.');
         console.error(innerErr);

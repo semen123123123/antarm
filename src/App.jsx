@@ -16,6 +16,7 @@ const Contacts = lazy(() => import('./pages/Contacts'));
 const Warranty = lazy(() => import('./pages/Warranty'));
 const Delivery = lazy(() => import('./pages/Delivery'));
 const Terms = lazy(() => import('./pages/Terms'));
+const Success = lazy(() => import('./pages/Success'));
 const Login = lazy(() => import('./pages/Login'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const Register = lazy(() => import('./pages/Register'));
@@ -96,6 +97,7 @@ function App() {
           <Route path="warranty" element={<Warranty />} />
           <Route path="delivery" element={<Delivery />} />
           <Route path="terms" element={<Terms />} />
+          <Route path="success" element={<Success />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="admin-login" element={<AdminLogin />} />

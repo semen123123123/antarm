@@ -15,6 +15,7 @@ import reviewRoutes from './api/reviews.js';
 import newsRoutes from './api/news.js';
 import promoRoutes from './api/promocodes.js';
 import videoReviewRoutes from './api/video-reviews.js';
+import paymentRoutes from './api/payments.js';
 
 // Admin routes
 import adminAnalyticsRoutes from './api/admin/analytics.js';
@@ -86,6 +87,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/promocodes', promoRoutes);
 app.use('/api/video-reviews', videoReviewRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Admin routes (with activity logging)
 app.use('/api/admin/analytics', logActivity, adminAnalyticsRoutes);

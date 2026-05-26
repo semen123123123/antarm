@@ -242,6 +242,7 @@ router.delete('/:id', requireAuth, requireRole('admin'), (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Product not found' });
 
     db.prepare('DELETE FROM product_specs WHERE product_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM order_items WHERE product_id = ?').run(req.params.id);
     db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
 
     res.json({ message: 'Product deleted' });

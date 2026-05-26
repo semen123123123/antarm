@@ -84,7 +84,7 @@ function getParentId(categoryId) {
 }
 
 export default function Constructor() {
-  const { constructorItems, addConstructorItem, removeConstructorItem, clearConstructorItems, syncConstructorToCart } = useCart();
+  const { constructorItems, setConstructorItems, addConstructorItem, removeConstructorItem, clearConstructorItems, syncConstructorToCart } = useCart();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +102,10 @@ export default function Constructor() {
           categoryId: mapCategoryId(p.categoryId || p.category_id),
         }));
         setProducts(mapped);
+
+        // Очистить constructorItems от удалённых товаров
+        const existingIds = new Set(mapped.map(p => p.id));
+        setConstructorItems(prev => prev.filter(item => existingIds.has(item.id)));
       }
       setLoading(false);
     }).catch(() => setLoading(false));

@@ -176,6 +176,7 @@ export function CartProvider({ children }) {
     toast,
     hideToast,
     constructorItems,
+    setConstructorItems,
     addConstructorItem,
     removeConstructorItem,
     clearConstructorItems,

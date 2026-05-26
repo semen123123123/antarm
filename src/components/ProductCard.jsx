@@ -137,12 +137,21 @@ export default function ProductCard({ product, dark = false, solid = false, ligh
           {product.sku}
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+        {/* Price - centered */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 4,
+          marginBottom: 12,
+        }}>
           <span style={{
             fontSize: 20,
             fontFamily: 'var(--font-mono)',
             fontWeight: 700,
             color: textPrice,
+            textAlign: 'center',
           }}>
             {product.price.toLocaleString('ru-RU')} ₽
           </span>
@@ -152,14 +161,15 @@ export default function ProductCard({ product, dark = false, solid = false, ligh
               fontFamily: 'var(--font-mono)',
               color: dark ? 'rgba(255,255,255,0.4)' : 'var(--text-old-price)',
               textDecoration: 'line-through',
+              textAlign: 'center',
             }}>
               {product.oldPrice.toLocaleString('ru-RU')} ₽
             </span>
           )}
         </div>
 
-        {/* Rating - only shows if product has reviews */}
-        {(product.reviews > 0) && (
+        {/* Rating - only shows if product has real user reviews */}
+        {(product.reviews && product.reviews > 0 && product.rating && product.rating > 0) && (
           <div style={{
             display: 'flex',
             alignItems: 'center',

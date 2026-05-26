@@ -72,8 +72,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот, Чёрный' },
     ],
     inStock: true,
-    rating: 4.8,
-    reviews: 24,
   },
   {
     id: 2,
@@ -93,8 +91,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот' },
     ],
     inStock: true,
-    rating: 4.9,
-    reviews: 18,
   },
   {
     id: 3,
@@ -114,8 +110,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный, Олива' },
     ],
     inStock: true,
-    rating: 5.0,
-    reviews: 12,
   },
   {
     id: 4,
@@ -135,8 +129,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный' },
     ],
     inStock: false,
-    rating: 4.5,
-    reviews: 31,
   },
 
   // ===== Варбелты (id 14) — бывшие разгрузочные системы =====
@@ -158,8 +150,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот, Мультикам' },
     ],
     inStock: true,
-    rating: 4.6,
-    reviews: 42,
   },
   {
     id: 6,
@@ -179,8 +169,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот' },
     ],
     inStock: true,
-    rating: 4.7,
-    reviews: 28,
   },
   {
     id: 7,
@@ -200,8 +188,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный, Олива' },
     ],
     inStock: true,
-    rating: 4.3,
-    reviews: 56,
   },
 
   // ===== Подсумки под автоматные магазины (id 12) =====
@@ -223,8 +209,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот, Чёрный' },
     ],
     inStock: true,
-    rating: 4.4,
-    reviews: 67,
   },
 
   // ===== Утилитарные подсумки (id 16) =====
@@ -246,8 +230,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот, Мультикам' },
     ],
     inStock: true,
-    rating: 4.8,
-    reviews: 34,
   },
   {
     id: 10,
@@ -267,8 +249,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Чёрный' },
     ],
     inStock: true,
-    rating: 4.2,
-    reviews: 19,
   },
 
   // ===== Рюкзаки (id 20) =====
@@ -290,8 +270,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот, Чёрный' },
     ],
     inStock: true,
-    rating: 4.7,
-    reviews: 45,
   },
   {
     id: 12,
@@ -311,8 +289,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот' },
     ],
     inStock: true,
-    rating: 4.9,
-    reviews: 22,
   },
   {
     id: 13,
@@ -332,8 +308,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот, Чёрный' },
     ],
     inStock: false,
-    rating: 4.5,
-    reviews: 38,
   },
 
   // ===== Аксессуары (id 19) =====
@@ -355,8 +329,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный, Олива' },
     ],
     inStock: true,
-    rating: 4.6,
-    reviews: 29,
   },
   {
     id: 15,
@@ -376,8 +348,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный, Олива, Койот' },
     ],
     inStock: true,
-    rating: 4.8,
-    reviews: 15,
   },
   {
     id: 16,
@@ -397,8 +367,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный, Койот' },
     ],
     inStock: true,
-    rating: 4.4,
-    reviews: 52,
   },
   {
     id: 17,
@@ -418,8 +386,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот' },
     ],
     inStock: true,
-    rating: 4.9,
-    reviews: 41,
   },
 
   // ===== Подсумки под гранаты (id 13) =====
@@ -441,8 +407,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Койот' },
     ],
     inStock: true,
-    rating: 4.3,
-    reviews: 8,
   },
 
   // ===== Органайзеры (id 15) =====
@@ -464,8 +428,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный, Олива' },
     ],
     inStock: true,
-    rating: 4.5,
-    reviews: 14,
   },
 
   // ===== Кап (id 17) =====
@@ -486,8 +448,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Чёрный, Койот, Мультикам' },
     ],
     inStock: true,
-    rating: 4.1,
-    reviews: 23,
   },
 
   // ===== Бафы тактические (id 18) =====
@@ -508,8 +468,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Чёрный, Койот' },
     ],
     inStock: true,
-    rating: 4.0,
-    reviews: 31,
   },
 
   // ===== Верхняя одежда / Охота (id 21) =====
@@ -531,8 +489,6 @@ export const products = [
       { key: 'Цвет', value: 'Хаки, Олива, Камуфляж' },
     ],
     inStock: true,
-    rating: 4.6,
-    reviews: 17,
   },
 
   // ===== Палатки (id 22) =====
@@ -554,8 +510,6 @@ export const products = [
       { key: 'Цвет', value: 'Зелёный, Олива' },
     ],
     inStock: true,
-    rating: 4.7,
-    reviews: 11,
   },
 
   // ===== Оружейные чехлы (id 23) =====
@@ -577,8 +531,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Чёрный' },
     ],
     inStock: true,
-    rating: 4.4,
-    reviews: 9,
   },
 
   // ===== Аксессуары / Охота (id 24) =====
@@ -600,8 +552,6 @@ export const products = [
       { key: 'Ножны', value: 'Кожаные' },
     ],
     inStock: true,
-    rating: 4.5,
-    reviews: 26,
   },
 
   // ===== Рюкзаки / Охота (id 25) =====
@@ -623,8 +573,6 @@ export const products = [
       { key: 'Цвет', value: 'Хаки, Олива' },
     ],
     inStock: true,
-    rating: 4.3,
-    reviews: 15,
   },
 
   // ===== Прогулочные аксессуары / Зоотовары (id 31) =====
@@ -646,8 +594,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Чёрный, Синий' },
     ],
     inStock: true,
-    rating: 4.6,
-    reviews: 33,
   },
 
   // ===== Одежда летняя / Зоотовары (id 32) =====
@@ -668,8 +614,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Хаки, Чёрный' },
     ],
     inStock: true,
-    rating: 4.2,
-    reviews: 19,
   },
 
   // ===== Одежда зимняя / Зоотовары (id 33) =====
@@ -691,8 +635,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный, Олива, Красный' },
     ],
     inStock: true,
-    rating: 4.7,
-    reviews: 22,
   },
 
   // ===== Одежда демисезонная / Зоотовары (id 34) =====
@@ -714,8 +656,6 @@ export const products = [
       { key: 'Цвет', value: 'Жёлтый, Олива, Синий' },
     ],
     inStock: true,
-    rating: 4.4,
-    reviews: 14,
   },
 
   // ===== Верхняя одежда / Одежда (id 41) =====
@@ -737,8 +677,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Чёрный, Койот' },
     ],
     inStock: true,
-    rating: 4.6,
-    reviews: 28,
   },
 
   // ===== Брюки (id 42) =====
@@ -760,8 +698,6 @@ export const products = [
       { key: 'Цвет', value: 'Олива, Чёрный, Койот' },
     ],
     inStock: true,
-    rating: 4.8,
-    reviews: 36,
   },
 
   // ===== Обувь (id 43) =====
@@ -783,8 +719,6 @@ export const products = [
       { key: 'Цвет', value: 'Чёрный, Олива, Койот' },
     ],
     inStock: true,
-    rating: 4.7,
-    reviews: 19,
   },
 ];
 
@@ -805,7 +739,6 @@ export function getCategoryBySlug(slug) {
 export function getBestsellers(limit = 6) {
   return [...products]
     .filter(p => p.inStock)
-    .sort((a, b) => b.reviews * b.rating - a.reviews * a.rating)
     .slice(0, limit);
 }
 

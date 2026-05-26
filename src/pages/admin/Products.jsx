@@ -33,8 +33,12 @@ export default function AdminProducts() {
 
   const handleDelete = async (id) => {
     if (!confirm('Удалить товар?')) return;
-    await api.delete(`/products/${id}`);
-    setProducts(prev => prev.filter(p => p.id !== id));
+    try {
+      await api.delete(`/products/${id}`);
+      setProducts(prev => prev.filter(p => p.id !== id));
+    } catch (err) {
+      alert('Ошибка при удалении: ' + (err.message || 'Неизвестная ошибка'));
+    }
   };
 
   const handleEdit = (product) => {

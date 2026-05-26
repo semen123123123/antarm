@@ -236,14 +236,19 @@ router.put('/:id', requireAuth, (req, res) => {
 
 // DELETE /api/products/:id — delete product (admin only)
 router.delete('/:id', requireAuth, requireRole('admin'), (req, res) => {
-  const db = getDb();
-  const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Product not found' });
+  try {
+    const db = getDb();
+    const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Product not found' });
 
-  db.prepare('DELETE FROM product_specs WHERE product_id = ?').run(req.params.id);
-  db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+    db.prepare('DELETE FROM product_specs WHERE product_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
 
-  res.json({ message: 'Product deleted' });
+    res.json({ message: 'Product deleted' });
+  } catch (err) {
+    console.error('Delete product error:', err);
+    res.status(500).json({ error: 'Failed to delete product: ' + err.message });
+  }
 });
 
 export default router;

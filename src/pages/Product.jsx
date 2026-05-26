@@ -145,8 +145,8 @@ export default function Product() {
                 justifyContent: 'center',
                 overflow: 'hidden',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                opacity: imageVisible ? 1 : 0,
-                transform: imageVisible ? 'translateX(0)' : 'translateX(-20px)',
+                opacity: 1,
+                transform: 'translateX(0)',
                 transition: 'all 0.6s ease',
               }}
             >
@@ -162,8 +162,8 @@ export default function Product() {
             <div
               ref={infoRef}
               style={{
-                opacity: infoVisible ? 1 : 0,
-                transform: infoVisible ? 'translateX(0)' : 'translateX(20px)',
+                opacity: 1,
+                transform: 'translateX(0)',
                 transition: 'all 0.6s ease',
               }}
             >
@@ -359,8 +359,8 @@ export default function Product() {
           <div
             ref={tabsRef}
             style={{
-              opacity: tabsVisible ? 1 : 0,
-              transform: tabsVisible ? 'translateY(0)' : 'translateY(20px)',
+              opacity: 1,
+              transform: 'translateY(0)',
               transition: 'all 0.6s ease',
             }}
           >
@@ -555,8 +555,8 @@ export default function Product() {
             <div
               ref={relatedRef}
               style={{
-                opacity: relatedVisible ? 1 : 0,
-                transform: relatedVisible ? 'translateY(0)' : 'translateY(20px)',
+                opacity: 1,
+                transform: 'translateY(0)',
                 transition: 'all 0.6s ease',
               }}
             >

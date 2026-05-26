@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Каталог — ANT ARM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #F5F5F5;
+  width: 1200px;
+  height: 900px;
+  overflow: hidden;
+  color: #1A1A1A;
+}
+/* Top bar */
+.top-bar {
+  height: 108px;
+  background: #fff;
+  border-bottom: 1px solid #E0E0E0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 40px;
+}
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 640px;
+}
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-input-wrapper svg {
+  position: absolute;
+  left: 16px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.search-input {
+  width: 100%;
+  height: 48px;
+  border: 2px solid #2C2C2C;
+  border-radius: 8px;
+  padding: 0 16px 0 48px;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  color: #1A1A1A;
+  background: #fff;
+  outline: none;
+}
+.search-input::placeholder { color: #999; }
+.search-btn {
+  height: 48px;
+  padding: 0 32px;
+  background: #2C2C2C;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* Main area */
+.main { display: flex; height: 792px; }
+/* Left panel */
+.left-panel {
+  width: 30%;
+  min-width: 320px;
+  background: #fff;
+  border-right: 1px solid #E0E0E0;
+  padding: 28px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.left-panel::-webkit-scrollbar { width: 4px; }
+.left-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+.filter-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: -0.3px;
+}
+.filter-block-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2C2C2C;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+/* Price inputs */
+.price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.price-input {
+  width: 100%;
+  height: 40px;
+  border: 2px solid #D0D0D0;
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  color: #1A1A1A;
+  outline: none;
+}
+.price-input:focus { border-color: #2C2C2C; }
+.price-sep { color: #999; font-size: 16px; font-weight: 300; }
+
+/* Slider */
+.slider-track {
+  position: relative;
+  height: 4px;
+  background: #E0E0E0;
+  border-radius: 2px;
+  margin: 8px 12px 0;
+}
+.slider-fill {
+  position: absolute;
+  height: 100%;
+  background: #2C2C2C;
+  border-radius: 2px;
+  left: 10%;
+  right: 20%;
+}
+.slider-handle {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: #2C2C2C;
+  border-radius: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.slider-handle.l { left: 10%; }
+.slider-handle.r { left: 80%; }
+
+/* Categories accordion */
+.category-group { margin-bottom: 4px; }
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  cursor: pointer;
+  border-bottom: 1px solid #F0F0F0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A1A1A;
+}
+.category-header .arrow { font-size: 12px; color: #999; transition: transform 0.2s; }
+.category-header .arrow.open { transform: rotate(180deg); }
+.subcategories {
+  padding: 6px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.subcat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: #2C2C2C;
+  padding: 4px 0;
+}
+.subcat-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #2C2C2C;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.checkbox.checked { background: #2C2C2C; }
+.checkbox.checked::after {
+  content: '';
+  width: 6px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-top: -1px;
+}
+.subcat-count { color: #999; font-size: 12px; }
+.subcat-label { line-height: 1.3; }
+.subcat-indent { padding-left: 16px; }
+
+.apply-btn {
+  margin-top: auto;
+  width: 100%;
+  height: 48px;
+  background: #2C2C2C;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+}
+
+/* Right panel */
+.right-panel {
+  width: 70%;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  background: #F5F5F5;
+}
+.right-panel::-webkit-scrollbar { width: 4px; }
+.right-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+.sort-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sort-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sort-label { font-size: 13px; color: #999; font-weight: 500; }
+.sort-select {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1A1A1A;
+  background: none;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  outline: none;
+  padding: 4px 0;
+}
+.result-count { font-size: 13px; color: #999; }
+.result-count strong { color: #1A1A1A; }
+
+/* Product grid */
+.product-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.product-card {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s;
+}
+.product-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+/* Badge */
+.badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #2C2C2C;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.badge.hit {
+  background: #1A1A1A;
+  font-size: 10px;
+  width: 58px;
+  height: 58px;
+  text-align: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Product image area */
+.product-img-wrap {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  background: #FAFAFA;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.product-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Content */
+.product-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.product-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.stars { display: flex; gap: 1px; }
+.star { font-size: 14px; color: #D4A853; }
+.star.empty { color: #E0E0E0; }
+.review-count { font-size: 12px; color: #999; }
+.product-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.old-price {
+  font-size: 14px;
+  color: #bbb;
+  text-decoration: line-through;
+}
+.new-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: -0.3px;
+}
+/* Marketplace buttons */
+.mkt-row {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+.mkt-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: 8px;
+  border: 1.5px solid #E0E0E0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  background: #fff;
+  cursor: pointer;
+  color: #2C2C2C;
+  transition: all 0.15s;
+}
+.mkt-btn:hover { border-color: #2C2C2C; }
+.mkt-btn.oz .oz-logo { color: #E91E8C; font-weight: 800; font-size: 14px; }
+.mkt-btn.wb .wb-logo { color: #7B3FBF; font-weight: 800; font-size: 14px; }
+
+/* SVG icons inline */
+.icon-cat { width: 14px; height: 14px; color: #2C2C2C; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="search-container">
+    <div class="search-input-wrapper">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input class="search-input" type="text" placeholder="Поиск товаров..." value="бронежилет">
+    </div>
+    <button class="search-btn">Найти</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- LEFT PANEL - FILTERS -->
+<div class="left-panel">
+  <div class="filter-title">Фильтры</div>
+
+  <!-- Price -->
+  <div>
+    <div class="filter-block-title">Цена</div>
+    <div class="price-row">
+      <input class="price-input" type="text" placeholder="от" value="9 900">
+      <span class="price-sep">—</span>
+      <input class="price-input" type="text" placeholder="до" value="89 900">
+    </div>
+    <div class="slider-track">
+      <div class="slider-fill"></div>
+      <div class="slider-handle l"></div>
+      <div class="slider-handle r"></div>
+    </div>
+  </div>
+
+  <!-- Categories -->
+  <div>
+    <div class="filter-block-title">Категории</div>
+
+    <!-- Category 1 -->
+    <div class="category-group">
+      <div class="category-header">
+        Тактическое снаряжение
+        <span class="arrow open">▼</span>
+      </div>
+      <div class="subcategories">
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox checked"></div>
+            <span class="subcat-label">Бронежилеты</span>
+          </div>
+          <span class="subcat-count">24</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Подсумки под автоматные магазины</span>
+          </div>
+          <span class="subcat-count">18</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Подсумки под гранаты</span>
+          </div>
+          <span class="subcat-count">7</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Варбелты</span>
+          </div>
+          <span class="subcat-count">12</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Органайзеры</span>
+          </div>
+          <span class="subcat-count">6</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Утилитарные подсумки</span>
+          </div>
+          <span class="subcat-count">10</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Кап</span>
+          </div>
+          <span class="subcat-count">5</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Бафы тактические</span>
+          </div>
+          <span class="subcat-count">8</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Аксессуары</span>
+          </div>
+          <span class="subcat-count">14</span>
+        </div>
+        <div class="subcat-item">
+          <div class="subcat-left">
+            <div class="checkbox"></div>
+            <span class="subcat-label">Рюкзаки</span>
+          </div>
+          <span class="subcat-count">9</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category 2 -->
+    <div class="category-group">
+      <div class="category-header">
+        Охота — рыбалка, туризм
+        <span class="arrow">▼</span>
+      </div>
+    </div>
+
+    <!-- Category 3 -->
+    <div class="category-group">
+      <div class="category-header">
+        Зоотовары
+        <span class="arrow">▼</span>
+      </div>
+    </div>
+
+    <!-- Category 4 -->
+    <div class="category-group">
+      <div class="category-header">
+        Одежда
+        <span class="arrow">▼</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="apply-btn">Применить фильтры</button>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="sort-row">
+    <div class="sort-left">
+      <span class="sort-label">Сортировка:</span>
+      <select class="sort-select">
+        <option>По популярности</option>
+        <option>По цене (возр.)</option>
+        <option>По цене (убыв.)</option>
+        <option>По новизне</option>
+      </select>
+    </div>
+    <span class="result-count">Найдено: <strong>137</strong></span>
+  </div>
+
+  <div class="product-grid">
+    <!-- Card 1: Бронежилет -->
+    <div class="product-card">
+      <div class="badge hit">Хит<br>продаж</div>
+      <div class="product-img-wrap">
+        <svg width="180" height="140" viewBox="0 0 180 140" fill="none">
+          <!-- Tactical vest isometric -->
+          <path d="M90 20 L160 55 L160 105 L90 130 L20 105 L20 55 Z" fill="#E8E8E8" stroke="#D0D0D0" stroke-width="1.5"/>
+          <path d="M90 40 L140 60 L140 100 L90 115 L40 100 L40 60 Z" fill="#F0F0F0" stroke="#D8D8D8" stroke-width="1"/>
+          <path d="M60 60 L85 72 L85 95 L60 85 Z" fill="#D8D8D8"/>
+          <path d="M120 60 L95 72 L95 95 L120 85 Z" fill="#D8D8D8"/>
+          <rect x="75" y="70" width="30" height="35" rx="3" fill="#2C2C2C" opacity="0.15"/>
+        </svg>
+      </div>
+      <div class="product-name">Бронежилет тактический «Ант-1»</div>
+      <div class="product-rating">
+        <div class="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star empty">★</span>
+        </div>
+        <span class="review-count">24 отзыва</span>
+      </div>
+      <div class="product-price-row">
+        <span class="old-price">45 900 ₽</span>
+        <span class="new-price">29 900 ₽</span>
+      </div>
+      <div class="mkt-row">
+        <button class="mkt-btn oz"><span class="oz-logo">O</span> Ozon</button>
+        <button class="mkt-btn wb"><span class="wb-logo">W</span> WB</button>
+      </div>
+    </div>
+
+    <!-- Card 2: Тактическая куртка -->
+    <div class="product-card">
+      <div class="badge">−15%</div>
+      <div class="product-img-wrap">
+        <svg width="160" height="140" viewBox="0 0 160 140" fill="none">
+          <!-- Tactical jacket -->
+          <path d="M30 35 L80 15 L130 35 L135 55 L120 60 L120 120 L100 125 L80 120 L80 60 L40 55 L25 50 Z" fill="#E8E8E8" stroke="#D0D0D0" stroke-width="1.5"/>
+          <path d="M80 15 L80 120" stroke="#D0D0D0" stroke-width="1" stroke-dasharray="3 3"/>
+          <rect x="50" y="45" width="12" height="16" rx="2" fill="#D0D0D0"/>
+          <rect x="98" y="45" width="12" height="16" rx="2" fill="#D0D0D0"/>
+          <rect x="52" y="52" width="8" height="2" fill="#bbb"/>
+          <rect x="100" y="52" width="8" height="2" fill="#bbb"/>
+        </svg>
+      </div>
+      <div class="product-name">Куртка тактическая утеплённая «Тайга»</div>
+      <div class="product-rating">
+        <div class="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <span class="review-count">38 отзывов</span>
+      </div>
+      <div class="product-price-row">
+        <span class="old-price">18 900 ₽</span>
+        <span class="new-price">15 900 ₽</span>
+      </div>
+      <div class="mkt-row">
+        <button class="mkt-btn oz"><span class="oz-logo">O</span> Ozon</button>
+        <button class="mkt-btn wb"><span class="wb-logo">W</span> WB</button>
+      </div>
+    </div>
+
+    <!-- Card 3: Подсумок -->
+    <div class="product-card">
+      <div class="badge">−10%</div>
+      <div class="product-img-wrap">
+        <svg width="150" height="130" viewBox="0 0 150 130" fill="none">
+          <!-- Pouch -->
+          <rect x="25" y="20" width="100" height="80" rx="6" fill="#E8E8E8" stroke="#D0D0D0" stroke-width="1.5"/>
+          <rect x="35" y="30" width="80" height="60" rx="3" fill="#F0F0F0"/>
+          <rect x="35" y="30" width="80" height="3" fill="#2C2C2C" opacity="0.1"/>
+          <rect x="45" y="42" width="60" height="8" rx="2" fill="#D8D8D8"/>
+          <rect x="45" y="56" width="60" height="8" rx="2" fill="#D8D8D8"/>
+          <rect x="45" y="70" width="60" height="8" rx="2" fill="#D8D8D8"/>
+          <!-- MOLLE straps -->
+          <rect x="20" y="30" width="6" height="60" rx="2" fill="#D0D0D0"/>
+          <rect x="124" y="30" width="6" height="60" rx="2" fill="#D0D0D0"/>
+        </svg>
+      </div>
+      <div class="product-name">Подсумок универсальный тактический</div>
+      <div class="product-rating">
+        <div class="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star empty">★</span>
+        </div>
+        <span class="review-count">19 отзывов</span>
+      </div>
+      <div class="product-price-row">
+        <span class="old-price">3 900 ₽</span>
+        <span class="new-price">2 490 ₽</span>
+      </div>
+      <div class="mkt-row">
+        <button class="mkt-btn oz"><span class="oz-logo">O</span> Ozon</button>
+        <button class="mkt-btn wb"><span class="wb-logo">W</span> WB</button>
+      </div>
+    </div>
+
+    <!-- Card 4: Тактические ботинки -->
+    <div class="product-card">
+      <div class="badge hit">Хит<br>продаж</div>
+      <div class="product-img-wrap">
+        <svg width="150" height="130" viewBox="0 0 150 130" fill="none">
+          <!-- Tactical boot -->
+          <path d="M35 40 C35 30 115 25 115 40 L110 105 C110 110 105 115 95 115 L55 115 C45 115 40 110 40 105 Z" fill="#E0E0E0" stroke="#C8C8C8" stroke-width="1.5"/>
+          <path d="M35 65 C35 55 115 50 115 65 L115 80 C115 85 110 90 95 90 L55 90 C45 90 40 85 40 80 Z" fill="#D8D8D8" stroke="#C8C8C8" stroke-width="1"/>
+          <!-- Laces -->
+          <line x1="75" y1="35" x2="75" y2="55" stroke="#999" stroke-width="1.5"/>
+          <line x1="65" y1="37" x2="68" y2="55" stroke="#999" stroke-width="1"/>
+          <line x1="85" y1="37" x2="82" y2="55" stroke="#999" stroke-width="1"/>
+          <!-- Sole -->
+          <path d="M38 108 C38 118 112 118 112 108 L112 115 C112 120 105 122 95 122 L55 122 C45 122 38 120 38 115 Z" fill="#2C2C2C" opacity="0.25"/>
+        </svg>
+      </div>
+      <div class="product-name">Ботинки тактические высокие «Штурм»</div>
+      <div class="product-rating">
+        <div class="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <span class="review-count">42 отзыва</span>
+      </div>
+      <div class="product-price-row">
+        <span class="old-price">16 900 ₽</span>
+        <span class="new-price">12 900 ₽</span>
+      </div>
+      <div class="mkt-row">
+        <button class="mkt-btn oz"><span class="oz-logo">O</span> Ozon</button>
+        <button class="mkt-btn wb"><span class="wb-logo">W</span> WB</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

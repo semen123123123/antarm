@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /catalog
+Allow: /category/
+Allow: /product/
+Allow: /about
+Allow: /contacts
+
+# Disallow admin and auth
+Disallow: /admin
+Disallow: /login
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://ant-arm.ru/sitemap.xml

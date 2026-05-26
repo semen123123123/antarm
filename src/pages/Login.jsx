@@ -1,29 +1,33 @@
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 
 export default function Login() {
-  const [tab, setTab] = useState('login');
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', passwordConfirm: '' });
-  const [errors, setErrors] = useState({});
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const validate = () => {
-    const errs = {};
-    if (tab === 'register' && !form.name) errs.name = 'Введите имя';
-    if (!form.email) errs.email = 'Введите email';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Неверный формат email';
-    if (!form.password) errs.password = 'Введите пароль';
-    else if (form.password.length < 6) errs.password = 'Минимум 6 символов';
-    if (tab === 'register' && form.password !== form.passwordConfirm) {
-      errs.passwordConfirm = 'Пароли не совпадают';
-    }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+  if (isAuthenticated) {
+    navigate('/');
+    return null;
+  }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      alert(tab === 'login' ? 'Вход выполнен (демо)' : 'Регистрация успешна (демо)');
+    setError('');
+    setLoading(true);
+
+    try {
+      await login(email, password);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Ошибка входа');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,98 +41,74 @@ export default function Login() {
           border: '1px solid var(--border)',
           borderRadius: 0,
           padding: 40,
+          marginTop: 24,
         }}>
-          {/* Tabs */}
-          <div className="tabs" style={{ marginBottom: 32 }}>
-            <button
-              className={`tab ${tab === 'login' ? 'active' : ''}`}
-              onClick={() => { setTab('login'); setErrors({}); }}
-              style={{ flex: 1, textAlign: 'center' }}
-            >
-              Вход
-            </button>
-            <button
-              className={`tab ${tab === 'register' ? 'active' : ''}`}
-              onClick={() => { setTab('register'); setErrors({}); }}
-              style={{ flex: 1, textAlign: 'center' }}
-            >
-              Регистрация
-            </button>
-          </div>
+          <h2 style={{
+            fontSize: 24,
+            fontWeight: 700,
+            marginBottom: 8,
+            color: '#fff',
+            textTransform: 'uppercase',
+          }}>
+            Вход в аккаунт
+          </h2>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 32 }}>
+            Войдите для оформления заказов
+          </p>
 
           <form onSubmit={handleSubmit}>
-            {tab === 'register' && (
-              <div className="form-group">
-                <label>Имя</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                />
-                {errors.name && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{errors.name}</p>}
-              </div>
-            )}
-
             <div className="form-group">
               <label>Email</label>
               <input
                 type="email"
                 className="form-input"
-                value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                required
               />
-              {errors.email && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{errors.email}</p>}
             </div>
-
-            {tab === 'register' && (
-              <div className="form-group">
-                <label>Телефон</label>
-                <input
-                  type="tel"
-                  className="form-input"
-                  value={form.phone}
-                  onChange={e => setForm({ ...form, phone: e.target.value })}
-                />
-              </div>
-            )}
 
             <div className="form-group">
               <label>Пароль</label>
               <input
                 type="password"
                 className="form-input"
-                value={form.password}
-                onChange={e => setForm({ ...form, password: e.target.value })}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Введите пароль"
+                required
               />
-              {errors.password && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{errors.password}</p>}
             </div>
 
-            {tab === 'register' && (
-              <div className="form-group">
-                <label>Подтвердите пароль</label>
-                <input
-                  type="password"
-                  className="form-input"
-                  value={form.passwordConfirm}
-                  onChange={e => setForm({ ...form, passwordConfirm: e.target.value })}
-                />
-                {errors.passwordConfirm && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{errors.passwordConfirm}</p>}
-              </div>
-            )}
-
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginBottom: 16 }}>
-              {tab === 'login' ? 'Войти' : 'Зарегистрироваться'}
-            </button>
-
-            {tab === 'login' && (
-              <p style={{ textAlign: 'center', fontSize: 14 }}>
-                <a href="#" style={{ color: 'var(--accent)' }}>
-                  Забыли пароль?
-                </a>
+            {error && (
+              <p style={{ color: 'var(--danger)', fontSize: 14, marginBottom: 16 }}>
+                {error}
               </p>
             )}
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ width: '100%', background: '#fff', color: '#333', borderColor: '#fff' }}
+              disabled={loading}
+            >
+              {loading ? 'Вход...' : 'Войти'}
+            </button>
           </form>
+
+          <p style={{ textAlign: 'center', marginTop: 24, fontSize: 14 }}>
+            Нет аккаунта?{' '}
+            <Link to="/register" style={{ color: '#fff', textDecoration: 'underline' }}>
+              Зарегистрироваться
+            </Link>
+          </p>
+
+          <p style={{ textAlign: 'center', marginTop: 8, fontSize: 14 }}>
+            <Link to="/" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>
+              ← Вернуться на сайт
+            </Link>
+          </p>
         </div>
       </div>
     </div>

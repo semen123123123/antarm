@@ -326,76 +326,121 @@ export default function Home() {
               gap: 24,
             }}
           >
-            {parentCategories.map((cat, i) => {
-              const glowMap = {
-                'takticheskoe-snaryazhenie': { color: 'rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.08)', textColor: '#333' },
-                'zashchita': { color: 'rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.08)', textColor: '#333' },
-                'sumki-i-ryukzaki': { color: 'rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.08)', textColor: '#333' },
-                'aksessuary': { color: 'rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.08)', textColor: '#333' },
+            {(() => {
+              const categoryData = {
+                'takticheskoe-snaryazhenie': { label: 'Тактическое снаряжение', image: '/img/bronya.jpg' },
+                'ohota-rybalka-turizm':      { label: 'Охота — рыбалка, туризм', image: '/img/ohota.jpg' },
+                'zootovary':                 { label: 'Зоотовары', image: '/img/osheinik.jpg' },
+                'odezhda':                   { label: 'Одежда', image: '/img/clothes.jpg' },
               };
-              const glow = glowMap[cat.slug] || { color: 'transparent', border: 'none', textColor: '#333' };
-              const delay = `${i * 0.1}s`;
-              return (
-                <Link
-                  key={cat.slug}
-                  to={`/category/${cat.slug}`}
-                  style={{
-                    textDecoration: 'none',
-                    position: 'relative',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    height: 320,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#fff',
-                    border: '1px solid #e0e0e0',
-                    opacity: catVisible ? 1 : 0,
-                    transform: catVisible ? 'translateY(0)' : 'translateY(30px)',
-                    transition: `all 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${delay}`,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'scale(1.02)';
-                    e.currentTarget.style.boxShadow = `0 12px 40px ${glow.color}`;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-                  }}
-                >
-                  <h3 style={{
-                    fontSize: 16,
-                    fontWeight: 700,
-                    color: glow.textColor,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    textAlign: 'center',
-                    padding: '0 20px',
-                    lineHeight: 1.4,
-                  }}>
-                    {cat.name}
-                  </h3>
-                </Link>
-              );
-            })}
+              const slugOrder = ['takticheskoe-snaryazhenie', 'ohota-rybalka-turizm', 'zootovary', 'odezhda'];
+              return slugOrder.map((slug, i) => {
+                const cat = categoryData[slug];
+                const delay = `${i * 0.1}s`;
+                return (
+                  <Link
+                    key={slug}
+                    to={`/category/${slug}`}
+                    style={{
+                      textDecoration: 'none',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      background: '#fff',
+                      border: '1px solid #e0e0e0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      opacity: catVisible ? 1 : 0,
+                      transform: catVisible ? 'translateY(0)' : 'translateY(30px)',
+                      transition: `all 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${delay}`,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                    }}
+                  >
+                    <div style={{
+                      padding: '20px 16px 0',
+                      display: 'flex',
+                      justifyContent: 'center',
+                    }}>
+                      <img
+                        src={cat.image}
+                        alt={cat.label}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: '12px',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    </div>
+                    <div style={{
+                      padding: '12px 12px 16px',
+                      textAlign: 'center',
+                    }}>
+                      <h3 style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: '#333',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        margin: 0,
+                        lineHeight: 1.3,
+                      }}>
+                        {cat.label}
+                      </h3>
+                    </div>
+                  </Link>
+                );
+              });
+            })()}
           </div>
         </div>
       </section>
 
       {/* Constructor Banner */}
-      <Link to="/constructor" style={{ textDecoration: 'none', display: 'block' }}>
-        <section style={{
-          padding: '80px 0',
-          background: '#fafafa',
-        }}>
-          <div className="container">
+      <section style={{
+        padding: '80px 0',
+        background: '#fafafa',
+      }}>
+        <div className="container">
+          <h2 style={{
+            fontSize: 32,
+            fontWeight: 700,
+            marginBottom: 32,
+            color: '#000',
+            textAlign: 'left',
+          }}>
+            Конструктор
+          </h2>
+          <Link to="/constructor" style={{ textDecoration: 'none', display: 'block' }}>
             <div style={{
               position: 'relative',
               borderRadius: 20,
               overflow: 'hidden',
               background: '#f0f0f0',
-            }}>
+              maxWidth: '75%',
+              margin: '0 auto',
+              transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+              boxShadow: '0 0 0px rgba(255,255,255,0.3)',
+              cursor: 'pointer',
+            }}
+              onMouseEnter={e => {
+                e.currentTarget.style.boxShadow = '0 0 30px rgba(255,255,255,0.4), 0 0 60px rgba(200,200,200,0.2)';
+                e.currentTarget.style.transform = 'scale(1.01)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.boxShadow = '0 0 0px rgba(255,255,255,0.3)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
               <img
                 src="/img/kons.png"
                 alt="Конструктор экипировки"
@@ -469,15 +514,15 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
-        </section>
-      </Link>
+          </Link>
+        </div>
+      </section>
 
       {/* About Section */}
       <section style={{
         padding: '100px 0',
         position: 'relative',
-        backgroundImage: 'url(/img/photo3.jpg)',
+        backgroundImage: 'url(/img/bg3.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',

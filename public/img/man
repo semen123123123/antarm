@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" width="400" height="700">
+  <!-- Human silhouette outline -->
+  <g fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Head -->
+    <circle cx="200" cy="50" r="35"/>
+    <!-- Neck -->
+    <line x1="200" y1="85" x2="200" y2="105"/>
+    <!-- Shoulders -->
+    <path d="M130 110 Q130 100 150 100 L250 100 Q270 100 270 110"/>
+    <!-- Left arm -->
+    <path d="M130 110 L110 200 L105 260 L100 270" stroke-width="2.5"/>
+    <path d="M100 270 Q100 280 110 280 L115 275 L115 265" stroke-width="2"/>
+    <!-- Right arm -->
+    <path d="M270 110 L290 200 L295 260 L300 270" stroke-width="2.5"/>
+    <path d="M300 270 Q300 280 290 280 L285 275 L285 265" stroke-width="2"/>
+    <!-- Torso -->
+    <path d="M150 110 L150 320 Q150 330 160 330 L240 330 Q250 330 250 320 L250 110"/>
+    <!-- Waist -->
+    <line x1="140" y1="320" x2="260" y2="320"/>
+    <!-- Left leg -->
+    <path d="M155 320 L145 500 L135 550 Q130 570 125 580 L120 590 Q115 600 125 600 L140 595 L145 590 L148 500 L160 320"/>
+    <!-- Right leg -->
+    <path d="M245 320 L255 500 L265 550 Q270 570 275 580 L280 590 Q285 600 275 600 L260 595 L255 590 L252 500 L240 320"/>
+    <!-- Left foot -->
+    <path d="M120 590 L110 600 Q105 610 115 610 L135 610 Q145 610 145 600 L140 595"/>
+    <!-- Right foot -->
+    <path d="M280 590 L290 600 Q295 610 285 610 L265 610 Q255 610 255 600 L260 595"/>
+  </g>
+  <!-- Internal fill for visibility -->
+  <g fill="rgba(0,0,0,0.03)" stroke="none">
+    <circle cx="200" cy="50" r="35"/>
+    <path d="M150 110 L150 320 Q150 330 160 330 L240 330 Q250 330 250 320 L250 110 Z"/>
+    <path d="M155 320 L145 500 L148 500 L160 320 Z"/>
+    <path d="M245 320 L255 500 L252 500 L240 320 Z"/>
+  </g>
+</svg>

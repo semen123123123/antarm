@@ -43,69 +43,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Rate limiting (simple in-memory)
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = 100; // requests per window
 
-function rateLimiter(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress;
-  const now = Date.now();
-
-  if (!rateLimitMap.has(ip)) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return next();
-  }
-
-  const record = rateLimitMap.get(ip);
-  if (now > record.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return next();
-  }
-
-  record.count++;
-  if (record.count > RATE_LIMIT_MAX) {
-    return res.status(429).json({ error: 'Too many requests. Try again later.' });
-  }
-
-  next();
-}
-
-// Clean up old rate limit entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, record] of rateLimitMap.entries()) {
-    if (now > record.resetAt) rateLimitMap.delete(ip);
-  }
-}, 5 * 60 * 1000);
-
-// Auth-specific rate limiting (stricter)
-const authLimitMap = new Map();
-const AUTH_LIMIT_WINDOW = 15 * 60 * 1000;
-const AUTH_LIMIT_MAX = 5;
-
-function authRateLimiter(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress;
-  const now = Date.now();
-
-  if (!authLimitMap.has(ip)) {
-    authLimitMap.set(ip, { count: 1, resetAt: now + AUTH_LIMIT_WINDOW });
-    return next();
-  }
-
-  const record = authLimitMap.get(ip);
-  if (now > record.resetAt) {
-    authLimitMap.set(ip, { count: 1, resetAt: now + AUTH_LIMIT_WINDOW });
-    return next();
-  }
-
-  record.count++;
-  if (record.count > AUTH_LIMIT_MAX) {
-    return res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
-  }
-
-  next();
-}
 
 // Security headers
 app.use((req, res, next) => {
@@ -124,10 +62,6 @@ app.use(cors({
 }));
 app.use(compression()); // gzip compression
 app.use(express.json({ limit: '100mb' }));
-
-// Apply rate limiting
-app.use('/api', rateLimiter);
-app.use('/api/auth', authRateLimiter);
 
 // Cache control for GET requests
 app.use('/api', (req, res, next) => {

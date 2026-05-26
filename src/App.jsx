@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 const Home = lazy(() => import('./pages/Home'));
 const Catalog = lazy(() => import('./pages/Catalog'));
 const Category = lazy(() => import('./pages/Category'));
+const Products = lazy(() => import('./pages/Products'));
 const Product = lazy(() => import('./pages/Product'));
 const Cart = lazy(() => import('./pages/Cart'));
 const Checkout = lazy(() => import('./pages/Checkout'));
@@ -86,6 +87,7 @@ function App() {
           <Route index element={<Home />} />
           <Route path="catalog" element={<Catalog />} />
           <Route path="category/:slug" element={<Category />} />
+          <Route path="products" element={<Products />} />
           <Route path="product/:slug" element={<Product />} />
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />

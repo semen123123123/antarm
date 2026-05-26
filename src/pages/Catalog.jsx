@@ -161,7 +161,7 @@ export default function Catalog() {
         textAlign: 'center',
       }}>
         <Link
-          to="/category/takticheskoe-snaryazhenie"
+          to="/products"
           style={{
             display: 'inline-flex',
             alignItems: 'center',

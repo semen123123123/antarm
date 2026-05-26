@@ -1,5 +1,61 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 
+// Moved outside component to prevent remounting inputs on every render
+function FilterSection({ title, sectionKey, expanded, onToggle, children }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <button
+        onClick={() => onToggle(sectionKey)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+          padding: '6px 0',
+          fontSize: 12,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          color: '#555',
+          cursor: 'pointer',
+        }}
+      >
+        {title}
+        <span style={{ fontSize: 9, opacity: 0.4, transform: expanded[sectionKey] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+          &#9660;
+        </span>
+      </button>
+      {expanded[sectionKey] && (
+        <div style={{ paddingLeft: 0, marginTop: 4 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CheckboxRow({ label, checked, onChange }) {
+  return (
+    <label style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '3px 0',
+      fontSize: 13,
+      color: '#666',
+      cursor: 'pointer',
+    }}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        style={{ accentColor: '#333', width: 14, height: 14 }}
+      />
+      <span style={{ flex: 1 }}>{label}</span>
+    </label>
+  );
+}
+
 export default function FilterSidebar({ onFilter, onSort, products: apiProducts, initialSort }) {
   const allProducts = apiProducts || [];
 
@@ -8,7 +64,7 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
   const [inStockOnly, setInStockOnly] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [sortBy, setSortBy] = useState(initialSort || 'default');
-  const [expanded, setExpanded] = useState({ price: true });
+  const [expanded, setExpanded] = useState({ price: true, sort: true, stock: true, sizes: true });
 
   const availableSizes = useMemo(
     () => [...new Set(allProducts.flatMap(p => p.sizes || []).filter(Boolean))],
@@ -71,57 +127,6 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
     ...selectedSizes,
   ].filter(Boolean).length;
 
-  const FilterSection = ({ title, sectionKey, children }) => (
-    <div style={{ marginBottom: 14 }}>
-      <button
-        onClick={() => toggleSection(sectionKey)}
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: '100%',
-          padding: '6px 0',
-          fontSize: 12,
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: '#555',
-          cursor: 'pointer',
-        }}
-      >
-        {title}
-        <span style={{ fontSize: 9, opacity: 0.4, transform: expanded[sectionKey] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-          &#9660;
-        </span>
-      </button>
-      {expanded[sectionKey] && (
-        <div style={{ paddingLeft: 0, marginTop: 4 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-
-  const CheckboxRow = ({ label, checked, onChange }) => (
-    <label style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      padding: '3px 0',
-      fontSize: 13,
-      color: '#666',
-      cursor: 'pointer',
-    }}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        style={{ accentColor: '#333', width: 14, height: 14 }}
-      />
-      <span style={{ flex: 1 }}>{label}</span>
-    </label>
-  );
-
   return (
     <aside style={{
       background: '#fff',
@@ -163,7 +168,7 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
         )}
       </div>
 
-      <FilterSection title="Сортировка" sectionKey="sort">
+      <FilterSection title="Сортировка" sectionKey="sort" expanded={expanded} onToggle={toggleSection}>
         <select
           value={sortBy}
           onChange={e => applySort(e.target.value)}
@@ -187,7 +192,7 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
         </select>
       </FilterSection>
 
-      <FilterSection title="Цена" sectionKey="price">
+      <FilterSection title="Цена" sectionKey="price" expanded={expanded} onToggle={toggleSection}>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             type="number"
@@ -214,7 +219,7 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
         </div>
       </FilterSection>
 
-      <FilterSection title="Наличие" sectionKey="stock">
+      <FilterSection title="Наличие" sectionKey="stock" expanded={expanded} onToggle={toggleSection}>
         <CheckboxRow
           label="Только в наличии"
           checked={inStockOnly}
@@ -223,7 +228,7 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
       </FilterSection>
 
       {availableSizes.length > 0 && (
-        <FilterSection title="Размер" sectionKey="sizes">
+        <FilterSection title="Размер" sectionKey="sizes" expanded={expanded} onToggle={toggleSection}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {availableSizes.map(s => (
               <button
@@ -232,9 +237,10 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
                 style={{
                   padding: '4px 10px', fontSize: 12, borderRadius: '4px',
                   border: selectedSizes.includes(s) ? '1px solid #333' : '1px solid rgba(0,0,0,0.12)',
-                  background: selectedSizes.includes(s) ? '#333' : 'transparent',
+                  background: selectedSizes.includes(s) ? '#333' : '#fff',
                   color: selectedSizes.includes(s) ? '#fff' : '#666',
-                  cursor: 'pointer', transition: 'all 0.15s',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
                 }}
               >
                 {s}
@@ -248,8 +254,10 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
         <button
           onClick={applyFilters}
           style={{
-            flex: 1, padding: '8px 14px', background: '#333', color: '#fff',
-            fontSize: 13, fontWeight: 500, borderRadius: '6px', cursor: 'pointer', border: 'none',
+            flex: 1, padding: '8px 0', fontSize: 12, fontWeight: 600,
+            background: '#333', color: '#fff', border: 'none',
+            borderRadius: '6px', cursor: 'pointer', textTransform: 'uppercase',
+            letterSpacing: '0.05em',
           }}
         >
           Применить
@@ -257,9 +265,10 @@ export default function FilterSidebar({ onFilter, onSort, products: apiProducts,
         <button
           onClick={resetFilters}
           style={{
-            padding: '8px 14px', background: 'transparent',
-            border: '1px solid rgba(0,0,0,0.1)', color: '#666',
-            fontSize: 13, borderRadius: '6px', cursor: 'pointer',
+            padding: '8px 16px', fontSize: 12, fontWeight: 600,
+            background: '#fff', color: '#555', border: '1px solid rgba(0,0,0,0.15)',
+            borderRadius: '6px', cursor: 'pointer', textTransform: 'uppercase',
+            letterSpacing: '0.05em',
           }}
         >
           Сброс

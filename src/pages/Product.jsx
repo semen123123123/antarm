@@ -16,7 +16,7 @@ export default function Product() {
     if (!p) return [];
     return getProductsByCategory(p.categoryId).filter(rp => rp.id !== p.id).slice(0, 4);
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { addToCart, toggleFavorite, favorites } = useCart();
   const [activeTab, setActiveTab] = useState('description');
   const [qty, setQty] = useState(1);
@@ -37,14 +37,20 @@ export default function Product() {
 
   // Fetch product + reviews from API
   useEffect(() => {
+    setLoading(true);
     api.get('/products').then(prods => {
       const mapped = prods.map(p => ({ ...p, categoryId: mapCategoryId(p.categoryId || p.category_id) }));
       const found = mapped.find(p => p.slug === slug);
       if (found) {
         setProduct(found);
         setRelated(mapped.filter(p => p.categoryId === found.categoryId && p.id !== found.id).slice(0, 4));
+      } else {
+        setProduct(null);
       }
-    }).catch(() => {});
+      setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+    });
 
     // Fetch approved reviews
     api.get(`/reviews?product_id=${slug}&approved=1`).then(revs => {
@@ -73,6 +79,17 @@ export default function Product() {
       setReviewSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{ background: '#f5f5f5', minHeight: '100vh', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
+          <p style={{ color: '#666' }}>Загрузка товара...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -134,9 +151,10 @@ export default function Product() {
               }}
             >
               <img
-                src={product.image}
+                src={product.image || 'https://placehold.co/600x800/f5f5f5/999?text=Нет+фото'}
                 alt={product.name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => { e.target.src = 'https://placehold.co/600x800/f5f5f5/999?text=Нет+фото'; }}
               />
             </div>
 

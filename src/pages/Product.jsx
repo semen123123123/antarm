@@ -431,6 +431,9 @@ export default function Product() {
                       padding: '20px 0',
                       borderBottom: i < reviews.length - 1 ? '1px solid #f0f0f0' : 'none',
                     }}>
+                      <p style={{ fontSize: 12, color: '#999', marginBottom: 6, fontWeight: 500 }}>
+                        Отзыв на товар: <span style={{ color: '#333' }}>{product.name}</span>
+                      </p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{
@@ -457,9 +460,12 @@ export default function Product() {
 
                   {/* Review form */}
                   <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #e5e7eb' }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: '#111827' }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: '#111827' }}>
                       Оставить отзыв
                     </h3>
+                    <p style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
+                      Товар: <strong style={{ color: '#333' }}>{product.name}</strong>
+                    </p>
                     {reviewSubmitted ? (
                       <div style={{
                         padding: 16, background: '#f0fdf4', borderRadius: 8,

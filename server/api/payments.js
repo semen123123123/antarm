@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { getDb } from '../db/db.js';
-import { createPayment, createReceipt, verifyWebhookSignature, getPaymentStatus } from '../robokassa.js';
-import { requireAuth } from '../middleware/auth.js';
+import { createPaymentUrl, verifyResultSignature, verifyReceiptSignature } from '../robokassa.js';
 
 const router = Router();
 
-// POST /api/init-payment — create order and payment intent
+// POST /api/init-payment — create order and get RoboKassa payment URL
 router.post('/init-payment', async (req, res) => {
   try {
     const { cart, email, phone, deliveryMethod, deliveryAddress, comment } = req.body;
@@ -75,116 +74,125 @@ router.post('/init-payment', async (req, res) => {
 
     const orderId = orderResult.lastInsertRowid;
 
-    // 3. Create payment intent with CloudPayments
-    try {
-      const payment = await createPayment({
-        amount: total,
-        description: `Order #${orderId} — ${items.length} items`,
-        email: email,
-        phone: phone,
-        orderId: orderId,
-      });
+    // 3. Create RoboKassa payment URL with fiscal receipt (54-FZ)
+    const paymentUrl = createPaymentUrl({
+      amount: total,
+      orderId: orderId,
+      description: `Order #${orderId} — ${items.length} items`,
+      email: email,
+      receipt: {
+        items: items.map(item => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          vat: 'none', // УСН без НДС
+        })),
+      },
+    });
 
-      // Update order with payment transaction ID
-      if (payment.Model?.TransactionId) {
-        db.prepare('UPDATE orders SET payment_id = ? WHERE id = ?').run(
-          payment.Model.TransactionId.toString(),
-          orderId
-        );
-      }
-
-      res.json({
-        success: true,
-        orderId: orderId,
-        paymentUrl: payment.Model?.PaReq || null,
-        transactionId: payment.Model?.TransactionId || null,
-        total: total,
-        message: 'Payment initialized',
-      });
-    } catch (paymentErr) {
-      // If CloudPayments fails, return order for manual payment
-      console.error('CloudPayments error:', paymentErr.message);
-      res.json({
-        success: true,
-        orderId: orderId,
-        paymentUrl: null,
-        total: total,
-        message: 'Order created. CloudPayments not configured — manual payment required.',
-      });
-    }
+    res.json({
+      success: true,
+      orderId: orderId,
+      paymentUrl: paymentUrl,
+      total: total,
+      message: 'Redirect to RoboKassa for payment',
+    });
   } catch (err) {
     console.error('Init payment error:', err);
     res.status(500).json({ error: err.message || 'Payment initialization failed' });
   }
 });
 
-// POST /api/webhook/payment-success — CloudPayments webhook
-router.post('/webhook/payment-success', async (req, res) => {
+// POST /api/robokassa/result — RoboKassa ResultURL webhook (server-to-server)
+router.post('/robokassa/result', async (req, res) => {
   try {
-    const { TransactionId, InvoiceId, Status, Email, Phone } = req.body;
+    const { OutSum, InvId, SignatureValue, Receipt, PaymentMethod } = req.body;
 
-    // Verify webhook (skip in development)
-    // const signature = req.headers['x-cloudpayments-signature'];
-    // if (!verifyWebhookSignature(req.body, signature)) {
-    //   return res.status(400).send('Invalid signature');
-    // }
+    // Verify signature
+    let validSignature;
+    if (Receipt) {
+      validSignature = verifyReceiptSignature(OutSum, InvId, Receipt, SignatureValue);
+    } else {
+      validSignature = verifyResultSignature(OutSum, InvId, SignatureValue);
+    }
 
-    if (Status !== 'Completed') {
-      return res.status(200).send('OK'); // Acknowledge but don't process
+    if (!validSignature) {
+      console.error('Invalid RoboKassa signature');
+      return res.status(400).send('Invalid signature');
     }
 
     const db = getDb();
-    const orderId = parseInt(InvoiceId);
+    const orderId = parseInt(InvId);
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
 
     if (!order) {
-      console.error(`Webhook: Order ${orderId} not found`);
+      console.error(`RoboKassa: Order ${orderId} not found`);
       return res.status(404).send('Order not found');
     }
 
     if (order.status === 'paid') {
-      return res.status(200).send('Already processed');
+      return res.status(200).send('OK'); // Already processed
     }
 
-    // 1. Update order status
-    db.prepare('UPDATE orders SET status = ?, payment_id = ? WHERE id = ?').run('paid', TransactionId?.toString(), orderId);
+    // Update order status to paid
+    db.prepare('UPDATE orders SET status = ?, payment_id = ? WHERE id = ?').run('paid', PaymentMethod || 'robokassa', orderId);
 
-    // 2. Create fiscal receipt
-    try {
-      const items = JSON.parse(order.items);
-      const receipt = await createReceipt({
-        items: items.map(item => ({
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          vat: 'vat20',
-        })),
-        email: order.customer_email || Email,
-        phone: order.customer_phone || Phone,
-        total: order.total,
-        paymentId: TransactionId?.toString(),
-        paymentMethod: 'card',
-      });
-
-      // Save receipt ID
-      if (receipt.Model?.ReceiptId) {
-        db.prepare('UPDATE orders SET receipt_id = ? WHERE id = ?').run(receipt.Model.ReceiptId.toString(), orderId);
-      }
-
-      console.log(`✅ Order ${orderId} paid, receipt created`);
-    } catch (receiptErr) {
-      console.error(`Receipt creation failed for order ${orderId}:`, receiptErr.message);
-      // Order is paid but receipt failed — log for manual processing
-    }
-
+    console.log(`✅ Order ${orderId} paid via RoboKassa`);
     res.status(200).send('OK');
   } catch (err) {
-    console.error('Webhook error:', err);
+    console.error('RoboKassa result error:', err);
     res.status(500).send('Error');
   }
 });
 
-// GET /api/check-payment — check payment status
+// GET /api/robokassa/success — RoboKassa SuccessURL (customer redirect)
+router.get('/robokassa/success', async (req, res) => {
+  try {
+    const { OutSum, InvId, SignatureValue } = req.query;
+
+    // Verify signature
+    const valid = verifyResultSignature(OutSum, InvId, SignatureValue);
+    if (!valid) {
+      return res.redirect('/cart?error=invalid_signature');
+    }
+
+    const db = getDb();
+    const orderId = parseInt(InvId);
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+
+    if (order) {
+      db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('paid', orderId);
+    }
+
+    // Redirect to success page
+    res.redirect(`/success?orderId=${orderId}`);
+  } catch (err) {
+    console.error('RoboKassa success error:', err);
+    res.redirect('/cart?error=payment_failed');
+  }
+});
+
+// GET /api/robokassa/fail — RoboKassa FailURL (payment failed)
+router.get('/robokassa/fail', async (req, res) => {
+  try {
+    const { OutSum, InvId } = req.query;
+    
+    const db = getDb();
+    const orderId = parseInt(InvId);
+    
+    if (orderId) {
+      db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('failed', orderId);
+    }
+
+    // Redirect to cart with error
+    res.redirect('/cart?error=payment_failed');
+  } catch (err) {
+    console.error('RoboKassa fail error:', err);
+    res.redirect('/cart?error=payment_failed');
+  }
+});
+
+// GET /api/check-payment/:orderId — check payment status
 router.get('/check-payment/:orderId', async (req, res) => {
   try {
     const db = getDb();
@@ -195,71 +203,15 @@ router.get('/check-payment/:orderId', async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // If payment_id exists, check with CloudPayments
-    let paymentStatus = null;
-    if (order.payment_id) {
-      try {
-        const cpStatus = await getPaymentStatus(order.payment_id);
-        paymentStatus = cpStatus.Model?.Status;
-      } catch (err) {
-        console.error('CloudPayments status check failed:', err.message);
-      }
-    }
-
     res.json({
       success: order.status === 'paid',
       status: order.status,
-      paymentStatus: paymentStatus,
+      paymentMethod: order.payment_id,
       receiptId: order.receipt_id,
       total: order.total,
     });
   } catch (err) {
     console.error('Check payment error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/orders — create order (public, no auth required)
-router.post('/orders', async (req, res) => {
-  try {
-    const {
-      customer_name, customer_email, customer_phone,
-      delivery_method, delivery_address, payment_method,
-      items, subtotal, total, comment
-    } = req.body;
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'Items are required' });
-    }
-
-    const db = getDb();
-    const result = db.prepare(`
-      INSERT INTO orders (
-        customer_name, customer_email, customer_phone,
-        delivery_method, delivery_address, payment_method,
-        items, subtotal, total, status, comment
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      customer_name,
-      customer_email || null,
-      customer_phone,
-      delivery_method || 'courier',
-      delivery_address || null,
-      payment_method || 'online',
-      JSON.stringify(items),
-      subtotal,
-      total,
-      'новый',
-      comment || null
-    );
-
-    res.status(201).json({
-      id: result.lastInsertRowid,
-      status: 'новый',
-      total,
-    });
-  } catch (err) {
-    console.error('Create order error:', err);
     res.status(500).json({ error: err.message });
   }
 });

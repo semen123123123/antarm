@@ -1,126 +1,109 @@
-import axios from 'axios';
+import crypto from 'crypto';
 
-const CP_PUBLIC_ID = process.env.CP_PUBLIC_ID;
-const CP_SECRET_KEY = process.env.CP_SECRET_KEY;
-const CP_INN = process.env.CP_INN;
-const CP_API_URL = 'https://api.cloudpayments.ru/';
+// RoboKassa configuration
+const SHOP_ID = process.env.ROBOKASSA_SHOP_ID || 'Ant_Arm';
+const PASSWORD_1 = process.env.ROBOKASSA_PASS_1 || 'KI2QFOVr4X99TT7iCUDe';
+const PASSWORD_2 = process.env.ROBOKASSA_PASS_2 || 'DLjrOVNoukYs9d4G11e9';
+const IS_TEST = process.env.ROBOKASSA_TEST === 'true' || false;
 
-if (!CP_PUBLIC_ID || !CP_SECRET_KEY) {
-  console.warn('⚠️ CloudPayments keys not configured. Set CP_PUBLIC_ID and CP_SECRET_KEY in .env');
+const ROBOKASSA_URL = 'https://auth.robokassa.ru/Merchant/Index.aspx';
+
+/**
+ * Generate MD5 signature for RoboKassa
+ * Format: md5(ShopId:OutSum:InvId:Password1)
+ */
+function generateSignature(outSum, invId, pass) {
+  const str = `${SHOP_ID}:${outSum}:${invId}:${pass}`;
+  return crypto.createHash('md5').update(str).digest('hex').toUpperCase();
 }
 
 /**
- * Create a payment intent
- * Returns payment URL for redirect
+ * Generate signature for receipts with 54-FZ
+ * Format: md5(ShopId:OutSum:InvId:Receipt:Password1)
  */
-export async function createPayment({ amount, description, email, phone, orderId }) {
-  if (!CP_PUBLIC_ID || !CP_SECRET_KEY) {
-    throw new Error('CloudPayments not configured. Check .env file.');
-  }
-
-  const response = await axios.post(
-    `${CP_API_URL}payments/one-time-token`,
-    {
-      Amount: amount,
-      Currency: 'RUB',
-      Description: description,
-      Email: email,
-      Phone: phone,
-      InvoiceId: orderId,
-      AccountId: email,
-    },
-    {
-      auth: {
-        username: CP_PUBLIC_ID,
-        password: CP_SECRET_KEY,
-      },
-    }
-  );
-
-  return response.data;
+function generateReceiptSignature(outSum, invId, receipt, pass) {
+  const str = `${SHOP_ID}:${outSum}:${invId}:${receipt}:${pass}`;
+  return crypto.createHash('md5').update(str).digest('hex').toUpperCase();
 }
 
 /**
- * Create fiscal receipt (online cash register)
- * Called after successful payment via webhook
+ * Create payment URL for redirect to RoboKassa
  */
-export async function createReceipt({ items, email, phone, total, paymentId, paymentMethod = 'card' }) {
-  if (!CP_PUBLIC_ID || !CP_SECRET_KEY || !CP_INN) {
-    throw new Error('CloudPayments not fully configured. Check CP_PUBLIC_ID, CP_SECRET_KEY, CP_INN in .env');
-  }
-
-  // CloudPayments receipt format (54-FZ compliant)
-  const receiptData = {
-    Inn: CP_INN,
-    Type: 'Income', // Приход (продажа)
-    CustomerReceipt: {
-      Items: items.map(item => ({
-        Label: item.name,
-        Price: parseFloat(item.price),
-        Quantity: parseFloat(item.quantity),
-        Amount: parseFloat(item.price) * parseFloat(item.quantity),
-        Vat: item.vat || 'vat20', // vat20, vat10, vat0, vat110, vat120, none
-        Method: paymentMethod === 'card' ? 1 : 4, // 1 = full prepayment, 4 = full payment
-        Object: 1, // 1 = product, 2 = service
+export function createPaymentUrl({ amount, orderId, description, email, receipt }) {
+  const outSum = parseFloat(amount).toFixed(2);
+  const invId = orderId;
+  
+  // Build fiscal receipt for 54-FZ
+  let receiptData = null;
+  if (receipt && receipt.items) {
+    receiptData = {
+      sno: 'usn_income', // УСН доход
+      items: receipt.items.map(item => ({
+        name: item.name.substring(0, 128), // Max 128 chars
+        quantity: parseFloat(item.quantity),
+        sum: (parseFloat(item.price) * parseFloat(item.quantity)).toFixed(2),
+        tax: item.vat || 'none',
+        payment_method: 'full_payment',
+        payment_object: 'commodity',
       })),
-      TaxationSystem: 'usn_income', // УСН доход (change if needed)
-      Email: email,
-      Phone: phone,
-      Amounts: {
-        Electronic: parseFloat(total),
-      },
-    },
+    };
+  }
+
+  const params = {
+    MerchantLogin: SHOP_ID,
+    OutSum: outSum,
+    InvId: invId,
+    Description: description || `Order #${invId}`,
+    Email: email || '',
+    Culture: 'ru',
+    Encoding: 'utf-8',
+    IsTest: IS_TEST ? '1' : '0',
   };
 
-  const response = await axios.post(
-    `${CP_API_URL}kkt/receipt`,
-    receiptData,
-    {
-      auth: {
-        username: CP_PUBLIC_ID,
-        password: CP_SECRET_KEY,
-      },
-    }
-  );
+  // Add receipt if provided (54-FZ compliance)
+  if (receiptData) {
+    const receiptJson = JSON.stringify(receiptData);
+    params.Receipt = receiptJson;
+    params.SignatureValue = generateReceiptSignature(outSum, invId, receiptJson, PASSWORD_1);
+  } else {
+    params.SignatureValue = generateSignature(outSum, invId, PASSWORD_1);
+  }
 
-  return response.data;
+  // Build URL
+  const queryParams = new URLSearchParams(params);
+  return `${ROBOKASSA_URL}?${queryParams.toString()}`;
 }
 
 /**
- * Verify webhook signature from CloudPayments
+ * Verify webhook signature from RoboKassa (SuccessURL/FailURL)
+ * Format: md5(OutSum:InvId:Password2)
  */
-export function verifyWebhookSignature(body, signature) {
-  // CloudPayments sends webhook with HMAC signature
-  // Implementation depends on their specific format
-  // For now, we accept all webhooks in development
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-  
-  // In production, verify HMAC here
-  return true;
+export function verifyWebhookSignature(outSum, invId, signature) {
+  const expected = generateSignature(outSum, invId, PASSWORD_2);
+  return signature.toUpperCase() === expected;
 }
 
 /**
- * Get payment status
+ * Verify ResultURL signature (server-to-server notification)
+ * Format: md5(OutSum:InvId:Password2)
  */
-export async function getPaymentStatus(transactionId) {
-  if (!CP_PUBLIC_ID || !CP_SECRET_KEY) {
-    throw new Error('CloudPayments not configured');
-  }
-
-  const response = await axios.post(
-    `${CP_API_URL}payments/get`,
-    { TransactionId: transactionId },
-    {
-      auth: {
-        username: CP_PUBLIC_ID,
-        password: CP_SECRET_KEY,
-      },
-    }
-  );
-
-  return response.data;
+export function verifyResultSignature(outSum, invId, signature) {
+  const expected = generateSignature(outSum, invId, PASSWORD_2);
+  return signature.toUpperCase() === expected;
 }
 
-export default { createPayment, createReceipt, verifyWebhookSignature, getPaymentStatus };
+/**
+ * Verify receipt webhook signature
+ * Format: md5(OutSum:InvId:Receipt:Password2)
+ */
+export function verifyReceiptSignature(outSum, invId, receipt, signature) {
+  const expected = generateReceiptSignature(outSum, invId, receipt, PASSWORD_2);
+  return signature.toUpperCase() === expected;
+}
+
+export default {
+  createPaymentUrl,
+  verifyWebhookSignature,
+  verifyResultSignature,
+  verifyReceiptSignature,
+};

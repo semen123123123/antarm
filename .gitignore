@@ -13,8 +13,13 @@ dist-ssr
 *.local
 
 # Environment
+.env
 .env.production
 .env.local
+
+# SQLite
+server/data/*.db-shm
+server/data/*.db-wal
 
 # Editor directories and files
 .vscode/*

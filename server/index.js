@@ -133,7 +133,7 @@ process.on('unhandledRejection', (reason) => {
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 API: http://localhost:${PORT}/api/health`);
-  console.log(`🛡️  Rate limiting: ${RATE_LIMIT_MAX} req/${RATE_LIMIT_WINDOW / 60000}min`);
+  console.log(`🛡️  Rate limiting disabled for admin access`);
   if (isProd) {
     console.log(`🌐 Serving frontend from dist/ (production)`);
   }

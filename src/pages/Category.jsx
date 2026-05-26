@@ -15,7 +15,7 @@ import useScrollAnimation from '../hooks/useScrollAnimation';
 export default function Category() {
   const { slug } = useParams();
   const [categories, setCategories] = useState(staticCategories);
-  const [allProducts, setAllProducts] = useState(staticProducts);
+  const [allProducts, setAllProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState(null);
   const [sortBy, setSortBy] = useState('default');
   const [page, setPage] = useState(1);
@@ -34,24 +34,14 @@ export default function Category() {
     setLoading(true);
 
     api.get('/products').then(prods => {
-      if (prods && prods.length > 0) {
-        // Мержим: API-товары обновляют статические по id, но НЕ заменяют их полностью
-        const mapped = prods.map(p => ({
-          ...p,
-          categoryId: mapCategoryId(p.categoryId || p.category_id),
-        }));
-        setAllProducts(prev => {
-          const merged = [...prev];
-          mapped.forEach(ap => {
-            const idx = merged.findIndex(mp => mp.id === ap.id);
-            if (idx >= 0) merged[idx] = { ...merged[idx], ...ap };
-            else merged.push(ap);
-          });
-          return merged;
-        });
-      }
+      const mapped = (prods || []).map(p => ({
+        ...p,
+        categoryId: mapCategoryId(p.categoryId || p.category_id),
+      }));
+      setAllProducts(mapped);
       setLoading(false);
     }).catch(() => {
+      setAllProducts([]);
       setLoading(false);
     });
   }, []);

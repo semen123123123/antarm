@@ -6,12 +6,19 @@ import { products as staticProducts, parentCategories, getSubcategories } from '
 
 
 export default function Catalog() {
-  const [products, setProducts] = useState(staticProducts);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     api.get('/products').then(prods => {
       if (prods && prods.length > 0) setProducts(prods);
-    }).catch(() => {});
+      else setProducts([]);
+      setLoading(false);
+    }).catch(() => {
+      setProducts([]);
+      setLoading(false);
+    });
   }, []);
 
   const categoryImages = {

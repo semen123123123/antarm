@@ -196,7 +196,7 @@ export default function ProductCard({ product, dark = false, solid = false, ligh
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
-            onClick={(e) => { e.preventDefault(); addToCart(product.id); }}
+            onClick={(e) => { e.preventDefault(); addToCart(product); }}
             onMouseEnter={e => { e.currentTarget.style.background = light ? '#1a1a1a' : '#555'; }}
             onMouseLeave={e => { e.currentTarget.style.background = light ? '#2a2a2a' : (dark ? '#fff' : (solid ? '#4a9eff' : undefined)); }}
           >

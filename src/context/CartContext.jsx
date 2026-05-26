@@ -44,7 +44,16 @@ export function CartProvider({ children }) {
     localStorage.setItem('ant-constructor', JSON.stringify(constructorItems));
   }, [constructorItems]);
 
-  const addToCart = useCallback((productId, size) => {
+  const addToCart = useCallback((product, size) => {
+    const productId = product?.id ?? product;
+    const productData = typeof product === 'object' && product !== null ? {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      slug: product.slug,
+    } : null;
+
     setCart(prev => {
       const existing = prev.find(item => item.id === productId && item.size === size);
       if (existing) {
@@ -52,9 +61,9 @@ export function CartProvider({ children }) {
           item.id === productId && item.size === size ? { ...item, qty: item.qty + 1 } : item
         );
       }
-      return [...prev, { id: productId, qty: 1, size: size || null }];
+      return [...prev, { id: productId, qty: 1, size: size || null, ...productData }];
     });
-    setAddedProduct({ id: productId, size: size || null });
+    setAddedProduct({ id: productId, size: size || null, ...productData });
     setCartModalOpen(true);
   }, []);
 

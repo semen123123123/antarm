@@ -296,7 +296,7 @@ export default function Product() {
 
                 <button
                   className="add-to-cart"
-                  onClick={() => { for (let i = 0; i < qty; i++) addToCart(product.id, selectedSize); }}
+                  onClick={() => { for (let i = 0; i < qty; i++) addToCart(product, selectedSize); }}
                   style={{
                     flex: 1, minWidth: 180, height: 40,
                     background: '#333', color: '#fff',

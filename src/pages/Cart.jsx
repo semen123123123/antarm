@@ -15,10 +15,15 @@ export default function Cart() {
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoLoading, setPromoLoading] = useState(false);
 
+  // Use stored product data from cart items, fallback to static lookup for backward compatibility
   const cartItems = cart.map(item => {
-    const product = products.find(p => p.id === item.id);
-    return { ...item, product };
-  }).filter(item => item.product);
+    const productName = item.name || products.find(p => p.id === item.id)?.name || 'Товар';
+    const productPrice = item.price ?? products.find(p => p.id === item.id)?.price ?? 0;
+    const productImage = item.image || products.find(p => p.id === item.id)?.image || '';
+    const productSlug = item.slug || products.find(p => p.id === item.id)?.slug || '';
+    const productSku = item.sku || products.find(p => p.id === item.id)?.sku || '';
+    return { ...item, product: { name: productName, price: productPrice, image: productImage, slug: productSlug, sku: productSku } };
+  });
 
   const cartSubtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.qty, 0);
   const constructorTotal = constructorItems.reduce((sum, item) => sum + item.price, 0);

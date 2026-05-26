@@ -7,21 +7,27 @@ export default function CartModal({ isOpen, onClose, addedProduct }) {
 
   if (!isOpen || !addedProduct) return null;
 
-  const product = products.find(p => p.id === addedProduct.id);
-  if (!product) return null;
+  // Use stored product data from addedProduct, fallback to static lookup for backward compatibility
+  const productName = addedProduct.name || products.find(p => p.id === addedProduct.id)?.name || 'Товар';
+  const productPrice = addedProduct.price ?? products.find(p => p.id === addedProduct.id)?.price ?? 0;
+  const productImage = addedProduct.image || products.find(p => p.id === addedProduct.id)?.image || '';
+  const productSlug = addedProduct.slug || products.find(p => p.id === addedProduct.id)?.slug || '';
+  const productCategoryId = addedProduct.categoryId || products.find(p => p.id === addedProduct.id)?.categoryId;
 
   const itemInCart = cart.find(c => c.id === addedProduct.id && c.size === addedProduct.size);
   const qty = itemInCart?.qty || 1;
-  const itemTotal = product.price * qty;
+  const itemTotal = productPrice * qty;
 
-  // Рекомендации — товары из той же категории
-  const recommendations = products
-    .filter(p => p.categoryId === product.categoryId && p.id !== product.id)
-    .slice(0, 4);
+  // Рекомендации — товары из той же категории (из статических данных)
+  const recommendations = productCategoryId
+    ? products
+      .filter(p => p.categoryId === productCategoryId && p.id !== addedProduct.id)
+      .slice(0, 4)
+    : [];
 
   const cartTotal = cart.reduce((sum, item) => {
-    const p = products.find(prod => prod.id === item.id);
-    return sum + (p ? p.price * item.qty : 0);
+    const itemPrice = item.price ?? products.find(prod => prod.id === item.id)?.price ?? 0;
+    return sum + (itemPrice * item.qty);
   }, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -91,25 +97,22 @@ export default function CartModal({ isOpen, onClose, addedProduct }) {
         {/* Added product */}
         <div style={{ padding: '24px 32px' }}>
           <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-            <Link to={`/product/${product.slug}`} style={{ flexShrink: 0 }}>
+            <Link to={`/product/${productSlug}`} style={{ flexShrink: 0 }}>
               <img
-                src={product.image}
-                alt={product.name}
+                src={productImage}
+                alt={productName}
                 style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8, background: '#f5f5f5' }}
               />
             </Link>
             <div style={{ flex: 1 }}>
               <Link
-                to={`/product/${product.slug}`}
+                to={`/product/${productSlug}`}
                 style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a', textDecoration: 'none', lineHeight: 1.4 }}
                 onMouseEnter={e => e.currentTarget.style.color = '#000'}
                 onMouseLeave={e => e.currentTarget.style.color = '#1a1a1a'}
               >
-                {product.name}
+                {productName}
               </Link>
-              {product.article && (
-                <p style={{ fontSize: 12, color: '#999', marginTop: 4 }}>Артикул: {product.article}</p>
-              )}
               {addedProduct.size && (
                 <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Размер: {addedProduct.size}</p>
               )}
@@ -119,7 +122,7 @@ export default function CartModal({ isOpen, onClose, addedProduct }) {
                 {itemTotal.toLocaleString('ru-RU')} ₽
               </div>
               <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>
-                {qty} × {product.price.toLocaleString('ru-RU')} ₽
+                {qty} × {productPrice.toLocaleString('ru-RU')} ₽
               </div>
             </div>
           </div>

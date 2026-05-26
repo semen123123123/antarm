@@ -5,10 +5,13 @@ function getProductById(id) {
 }
 
 export default function CartItem({ item, onRemove, onUpdateQty }) {
-  const product = getProductById(item.id);
-  if (!product) return null;
+  // Use stored product data from cart, fallback to static lookup for backward compatibility
+  const productName = item.name || getProductById(item.id)?.name || 'Товар';
+  const productPrice = item.price ?? getProductById(item.id)?.price ?? 0;
+  const productImage = item.image || getProductById(item.id)?.image || '';
+  const productSku = item.sku || getProductById(item.id)?.sku || '';
 
-  const total = product.price * item.qty;
+  const total = productPrice * item.qty;
 
   return (
     <div style={{
@@ -20,16 +23,16 @@ export default function CartItem({ item, onRemove, onUpdateQty }) {
       borderBottom: '1px solid rgba(0,0,0,0.06)',
     }}>
       <img
-        src={product.image}
-        alt={product.name}
+        src={productImage}
+        alt={productName}
         style={{ width: 80, height: 80, objectFit: 'cover', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 0 }}
       />
       <div>
         <h4 style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, color: '#333' }}>
-          {product.name}
+          {productName}
         </h4>
         <p style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: '#999' }}>
-          {product.sku}{item.size ? ` • Размер: ${item.size}` : ''}
+          {productSku}{item.size ? ` • Размер: ${item.size}` : ''}
         </p>
       </div>
       <div style={{
@@ -40,7 +43,7 @@ export default function CartItem({ item, onRemove, onUpdateQty }) {
         textAlign: 'right',
         color: '#333',
       }}>
-        {product.price.toLocaleString('ru-RU')} ₽
+        {productPrice.toLocaleString('ru-RU')} ₽
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
         <button
@@ -98,7 +101,7 @@ export default function CartItem({ item, onRemove, onUpdateQty }) {
       <div style={{
         fontSize: 14,
         fontFamily: 'var(--font-mono)',
-        fontWeight: 700,
+        fontWeight: 600,
         minWidth: 90,
         textAlign: 'right',
         color: '#333',
@@ -107,18 +110,20 @@ export default function CartItem({ item, onRemove, onUpdateQty }) {
       </div>
       <button
         onClick={() => onRemove(item.id, item.size)}
-        aria-label="Удалить"
         style={{
-          background: 'transparent',
+          background: 'none',
           border: 'none',
-          cursor: 'pointer',
+          fontSize: 18,
           color: '#ccc',
+          cursor: 'pointer',
           padding: 4,
+          lineHeight: 1,
+          transition: 'color 0.2s',
         }}
+        onMouseEnter={e => e.currentTarget.style.color = '#ff4444'}
+        onMouseLeave={e => e.currentTarget.style.color = '#ccc'}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
+        ×
       </button>
     </div>
   );

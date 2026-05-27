@@ -4,7 +4,7 @@ services:
     runtime: node
     region: frankfurt
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -22,7 +22,7 @@ services:
       - key: ROBOKASSA_TEST
         value: "false"
       - key: CORS_ORIGIN
-        value: "https://antarm.ru"
+        value: "https://antarm.ru,https://*.vercel.app"
     disk:
       name: sqlite-data
       mountPath: /opt/render/project/src/server/data

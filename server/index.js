@@ -57,8 +57,19 @@ app.use((req, res, next) => {
 });
 
 // Middleware
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').map(s => s.trim());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, curl, etc.)
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    // Wildcard domain support: *.vercel.app
+    if (allowedOrigins.some(a => a.startsWith('*.') && origin?.endsWith(a.slice(1)))) {
+      return callback(null, true);
+    }
+    callback(null, true); // Allow all in development
+  },
   credentials: true,
 }));
 app.use(compression()); // gzip compression

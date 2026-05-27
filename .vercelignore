@@ -1,0 +1,10 @@
+﻿# Ignore large video files
+*.mp4
+*.avi
+*.mov
+*.mkv
+dist/img/*.mp4
+public/img/*.mp4
+.git
+.git/lfs
+node_modules

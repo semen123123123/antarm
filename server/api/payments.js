@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDb } from '../db/db.js';
+import { getDb } from '../db/pg.js';
 import { createPaymentUrl, verifyResultSignature, verifyReceiptSignature } from '../robokassa.js';
 
 const router = Router();
@@ -22,7 +22,7 @@ router.post('/init-payment', async (req, res) => {
     // 1. Verify products and calculate total
     const ids = cart.map(i => i.id);
     const placeholders = ids.map(() => '?').join(',');
-    const products = db.prepare(`SELECT id, name, price, in_stock FROM products WHERE id IN (${placeholders})`).all(...ids);
+    const products = await db.prepare(`SELECT id, name, price, in_stock FROM products WHERE id IN (${placeholders})`).all(...ids);
     const productMap = new Map(products.map(p => [p.id, p]));
 
     let items = [];
@@ -52,7 +52,7 @@ router.post('/init-payment', async (req, res) => {
     }
 
     // 2. Create order in database
-    const orderResult = db.prepare(`
+    const orderResult = await db.prepare(`
       INSERT INTO orders (
         customer_name, customer_email, customer_phone,
         delivery_method, delivery_address, payment_method,
@@ -123,7 +123,7 @@ router.post('/robokassa/result', async (req, res) => {
 
     const db = getDb();
     const orderId = parseInt(InvId);
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+    const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
 
     if (!order) {
       console.error(`RoboKassa: Order ${orderId} not found`);
@@ -135,7 +135,7 @@ router.post('/robokassa/result', async (req, res) => {
     }
 
     // Update order status to paid
-    db.prepare('UPDATE orders SET status = ?, payment_id = ? WHERE id = ?').run('paid', PaymentMethod || 'robokassa', orderId);
+    await db.prepare('UPDATE orders SET status = ?, payment_id = ? WHERE id = ?').run('paid', PaymentMethod || 'robokassa', orderId);
 
     console.log(`✅ Order ${orderId} paid via RoboKassa`);
     res.status(200).send('OK');
@@ -158,10 +158,10 @@ router.get('/robokassa/success', async (req, res) => {
 
     const db = getDb();
     const orderId = parseInt(InvId);
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+    const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
 
     if (order) {
-      db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('paid', orderId);
+      await db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('paid', orderId);
     }
 
     // Redirect to success page
@@ -181,7 +181,7 @@ router.get('/robokassa/fail', async (req, res) => {
     const orderId = parseInt(InvId);
     
     if (orderId) {
-      db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('failed', orderId);
+      await db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('failed', orderId);
     }
 
     // Redirect to cart with error
@@ -197,7 +197,7 @@ router.get('/check-payment/:orderId', async (req, res) => {
   try {
     const db = getDb();
     const orderId = parseInt(req.params.orderId);
-    const order = db.prepare('SELECT status, payment_id, receipt_id, total FROM orders WHERE id = ?').get(orderId);
+    const order = await db.prepare('SELECT status, payment_id, receipt_id, total FROM orders WHERE id = ?').get(orderId);
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });

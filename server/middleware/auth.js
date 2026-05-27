@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { getDb } from '../db/db.js';
+import { getDb } from '../db/pg.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
 
@@ -9,7 +9,7 @@ const ROLE_PERMISSIONS = {
   user: [],
 };
 
-export function verifyToken(req, res, next) {
+export async function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
@@ -21,7 +21,7 @@ export function verifyToken(req, res, next) {
 
     // Check if user is blocked
     const db = getDb();
-    const user = db.prepare('SELECT id, email, role, is_blocked FROM users WHERE id = ?').get(decoded.id);
+    const user = await db.prepare('SELECT id, email, role, is_blocked FROM users WHERE id = ?').get(decoded.id);
     if (!user) return res.status(401).json({ error: 'User not found' });
     if (user.is_blocked) return res.status(403).json({ error: 'Account is blocked' });
 
@@ -32,8 +32,8 @@ export function verifyToken(req, res, next) {
   }
 }
 
-export function requireAuth(req, res, next) {
-  verifyToken(req, res, next);
+export async function requireAuth(req, res, next) {
+  await verifyToken(req, res, next);
 }
 
 export function requireRole(...roles) {

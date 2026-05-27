@@ -1,17 +1,17 @@
 import { Router } from 'express';
-import { getDb } from '../db/db.js';
+import { getDb } from '../db/pg.js';
 
 const router = Router();
 
 // GET /api/promocodes — список всех промокодов (админ)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const db = getDb();
-  const codes = db.prepare('SELECT * FROM promocodes ORDER BY created_at DESC').all();
+  const codes = await db.prepare('SELECT * FROM promocodes ORDER BY created_at DESC').all();
   res.json(codes);
 });
 
 // POST /api/promocodes — создать промокод (админ)
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { code, discount_type, discount_value, expires_at, usage_limit } = req.body;
 
   if (!code || !discount_type || !discount_value) {
@@ -30,28 +30,28 @@ router.post('/', (req, res) => {
   const db = getDb();
 
   // Check for duplicate code
-  const existing = db.prepare('SELECT id FROM promocodes WHERE code = ?').get(code.toUpperCase());
+  const existing = await db.prepare('SELECT id FROM promocodes WHERE code = ?').get(code.toUpperCase());
   if (existing) {
     return res.status(409).json({ error: 'Такой код уже существует' });
   }
 
-  const result = db.prepare(
+  const result = await db.prepare(
     'INSERT INTO promocodes (code, discount_type, discount_value, expires_at, usage_limit) VALUES (?, ?, ?, ?, ?)'
   ).run(code.toUpperCase(), discount_type, discount_value, expires_at || null, usage_limit || 0);
 
-  const promocode = db.prepare('SELECT * FROM promocodes WHERE id = ?').get(result.lastInsertRowid);
+  const promocode = await db.prepare('SELECT * FROM promocodes WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(promocode);
 });
 
 // PUT /api/promocodes/:id — обновить промокод (админ)
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { code, discount_type, discount_value, expires_at, usage_limit, is_active } = req.body;
   const db = getDb();
 
-  const existing = db.prepare('SELECT * FROM promocodes WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT * FROM promocodes WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Промокод не найден' });
 
-  db.prepare(
+  await db.prepare(
     'UPDATE promocodes SET code = ?, discount_type = ?, discount_value = ?, expires_at = ?, usage_limit = ?, is_active = ? WHERE id = ?'
   ).run(
     code?.toUpperCase() || existing.code,
@@ -63,24 +63,24 @@ router.put('/:id', (req, res) => {
     req.params.id
   );
 
-  const updated = db.prepare('SELECT * FROM promocodes WHERE id = ?').get(req.params.id);
+  const updated = await db.prepare('SELECT * FROM promocodes WHERE id = ?').get(req.params.id);
   res.json(updated);
 });
 
 // DELETE /api/promocodes/:id — удалить промокод (админ)
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   const db = getDb();
-  db.prepare('DELETE FROM promocodes WHERE id = ?').run(req.params.id);
+  await db.prepare('DELETE FROM promocodes WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
 // POST /api/promocodes/validate — проверить промокод (для корзины)
-router.post('/validate', (req, res) => {
+router.post('/validate', async (req, res) => {
   const { code, subtotal } = req.body;
   if (!code) return res.status(400).json({ error: 'Введите промокод' });
 
   const db = getDb();
-  const promocode = db.prepare('SELECT * FROM promocodes WHERE code = ?').get(code.toUpperCase());
+  const promocode = await db.prepare('SELECT * FROM promocodes WHERE code = ?').get(code.toUpperCase());
 
   if (!promocode) {
     return res.json({ valid: false, message: 'Неверный код' });
@@ -123,12 +123,12 @@ router.post('/validate', (req, res) => {
 });
 
 // POST /api/promocodes/use — отметить промокод как использованный
-router.post('/use', (req, res) => {
+router.post('/use', async (req, res) => {
   const { promocode_id, order_id, discount_applied } = req.body;
   const db = getDb();
 
-  db.prepare('UPDATE promocodes SET usage_count = usage_count + 1 WHERE id = ?').run(promocode_id);
-  db.prepare(
+  await db.prepare('UPDATE promocodes SET usage_count = usage_count + 1 WHERE id = ?').run(promocode_id);
+  await db.prepare(
     'INSERT INTO used_promocodes (promocode_id, order_id, discount_applied) VALUES (?, ?, ?)'
   ).run(promocode_id, order_id, discount_applied);
 

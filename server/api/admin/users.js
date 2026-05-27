@@ -1,29 +1,29 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
-import { getDb } from '../../db/db.js';
+import { getDb } from '../../db/pg.js';
 import { requireAuth, requireRole, requirePermission } from '../../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/admin/users — list all users
-router.get('/', requireAuth, requirePermission('admin'), (req, res) => {
+router.get('/', requireAuth, requirePermission('admin'), async (req, res) => {
   const db = getDb();
-  const users = db.prepare(`
+  const users = await db.prepare(`
     SELECT id, email, role, name, phone, is_blocked, loyalty_points, total_spent, created_at
     FROM users ORDER BY created_at DESC
   `).all();
 
   // Add order counts
-  const usersWithOrders = users.map(u => {
-    const orderCount = db.prepare("SELECT COUNT(*) as count FROM orders WHERE customer_email = ?").get(u.email);
+  const usersWithOrders = await Promise.all(users.map(async (u) => {
+    const orderCount = await db.prepare("SELECT COUNT(*) as count FROM orders WHERE customer_email = ?").get(u.email);
     return { ...u, order_count: orderCount.count };
-  });
+  }));
 
   res.json(usersWithOrders);
 });
 
 // POST /api/admin/users — create user
-router.post('/', requireAuth, requireRole('admin'), (req, res) => {
+router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   const { email, password, name, role, phone } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -35,25 +35,25 @@ router.post('/', requireAuth, requireRole('admin'), (req, res) => {
   }
 
   const db = getDb();
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existing) {
     return res.status(409).json({ error: 'User already exists' });
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO users (email, password_hash, role, name, phone)
     VALUES (?, ?, ?, ?, ?)
   `).run(email, passwordHash, role || 'product_manager', name || '', phone || '');
 
-  const user = db.prepare('SELECT id, email, role, name, phone, is_blocked, created_at FROM users WHERE id = ?').get(result.lastInsertRowid);
+  const user = await db.prepare('SELECT id, email, role, name, phone, is_blocked, created_at FROM users WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(user);
 });
 
 // PUT /api/admin/users/:id — update user
-router.put('/:id', requireAuth, requireRole('admin'), (req, res) => {
+router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'User not found' });
 
   const { name, phone, role, password } = req.body;
@@ -73,31 +73,31 @@ router.put('/:id', requireAuth, requireRole('admin'), (req, res) => {
     passwordHash = bcrypt.hashSync(password, 10);
   }
 
-  db.prepare(`
+  await db.prepare(`
     UPDATE users SET name = ?, phone = ?, role = ?, password_hash = ?
     WHERE id = ?
   `).run(name || existing.name, phone || existing.phone, role || existing.role, passwordHash, req.params.id);
 
-  const user = db.prepare('SELECT id, email, role, name, phone, is_blocked, created_at FROM users WHERE id = ?').get(req.params.id);
+  const user = await db.prepare('SELECT id, email, role, name, phone, is_blocked, created_at FROM users WHERE id = ?').get(req.params.id);
   res.json(user);
 });
 
 // PUT /api/admin/users/:id/block — block/unblock user
-router.put('/:id/block', requireAuth, requireRole('admin'), (req, res) => {
+router.put('/:id/block', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT id, is_blocked FROM users WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT id, is_blocked FROM users WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'User not found' });
 
   const newBlocked = !existing.is_blocked;
-  db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(newBlocked ? 1 : 0, req.params.id);
+  await db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(newBlocked ? 1 : 0, req.params.id);
 
   res.json({ id: req.params.id, is_blocked: newBlocked });
 });
 
 // PUT /api/admin/users/:id/loyalty — adjust loyalty points
-router.put('/:id/loyalty', requireAuth, requireRole('admin'), (req, res) => {
+router.put('/:id/loyalty', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT id, loyalty_points FROM users WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT id, loyalty_points FROM users WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'User not found' });
 
   const { points, operation = 'add' } = req.body;
@@ -112,17 +112,17 @@ router.put('/:id/loyalty', requireAuth, requireRole('admin'), (req, res) => {
 
   if (newPoints < 0) newPoints = 0;
 
-  db.prepare('UPDATE users SET loyalty_points = ? WHERE id = ?').run(newPoints, req.params.id);
+  await db.prepare('UPDATE users SET loyalty_points = ? WHERE id = ?').run(newPoints, req.params.id);
   res.json({ id: req.params.id, loyalty_points: newPoints });
 });
 
 // GET /api/admin/users/:id/orders — user order history
-router.get('/:id/orders', requireAuth, requirePermission('admin', 'order_manager'), (req, res) => {
+router.get('/:id/orders', requireAuth, requirePermission('admin', 'order_manager'), async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT email FROM users WHERE id = ?').get(req.params.id);
+  const user = await db.prepare('SELECT email FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  const orders = db.prepare(`
+  const orders = await db.prepare(`
     SELECT * FROM orders WHERE customer_email = ? ORDER BY created_at DESC
   `).all(user.email);
 

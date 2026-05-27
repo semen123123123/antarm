@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDb } from '../../db/db.js';
+import { getDb } from '../../db/pg.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 
 const VALID_STATUSES = ['новый', 'в обработке', 'подтверждён', 'отправлен', 'доставлен', 'отменён'];
@@ -7,7 +7,7 @@ const VALID_STATUSES = ['новый', 'в обработке', 'подтверж
 const router = Router();
 
 // GET /api/admin/orders — list with filters
-router.get('/', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
   const { status, search, sort = 'created_at', order = 'DESC', page = 1, limit = 20 } = req.query;
 
@@ -26,11 +26,11 @@ router.get('/', requireAuth, requireRole('admin'), (req, res) => {
   const offset = (Number(page) - 1) * Number(limit);
 
   // Count
-  const countRow = db.prepare(`SELECT COUNT(*) as total FROM orders o ${whereClause}`).all(...params);
+  const countRow = await db.prepare(`SELECT COUNT(*) as total FROM orders o ${whereClause}`).all(...params);
   const total = countRow[0]?.total || 0;
 
   // Orders
-  const orders = db.prepare(`
+  const orders = await db.prepare(`
     SELECT o.*, 
            (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) as item_count
     FROM orders o ${whereClause}
@@ -42,13 +42,13 @@ router.get('/', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // GET /api/admin/orders/:id — single order with history
-router.get('/:id', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
-  const history = db.prepare(`
+  const items = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+  const history = await db.prepare(`
     SELECT h.*, u.name as changed_by_name
     FROM order_status_history h
     LEFT JOIN users u ON h.changed_by = u.id
@@ -60,30 +60,30 @@ router.get('/:id', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // PUT /api/admin/orders/:id/status — update status with history
-router.put('/:id/status', requireAuth, requireRole('admin'), (req, res) => {
+router.put('/:id/status', requireAuth, requireRole('admin'), async (req, res) => {
   const { status, comment } = req.body;
   if (!status || !VALID_STATUSES.includes(status)) {
     return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
   }
 
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Order not found' });
 
   const oldStatus = existing.status;
 
   // Update order
-  db.prepare('UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, req.params.id);
+  await db.prepare('UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, req.params.id);
 
   // Record history
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO order_status_history (order_id, old_status, new_status, changed_by, comment)
     VALUES (?, ?, ?, ?, ?)
   `).run(req.params.id, oldStatus, status, req.user.id, comment || '');
 
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
-  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
-  const history = db.prepare(`
+  const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const items = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+  const history = await db.prepare(`
     SELECT h.*, u.name as changed_by_name
     FROM order_status_history h
     LEFT JOIN users u ON h.changed_by = u.id
@@ -95,11 +95,11 @@ router.put('/:id/status', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // POST /api/admin/orders/:id/notify — send notification (simulated)
-router.post('/:id/notify', requireAuth, requireRole('admin'), (req, res) => {
+router.post('/:id/notify', requireAuth, requireRole('admin'), async (req, res) => {
   const { type = 'email', message } = req.body;
   const db = getDb();
 
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   // In production, this would send via SendPulse/SMTP
@@ -115,12 +115,12 @@ router.post('/:id/notify', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // GET /api/admin/orders/:id/print — print invoice (returns HTML)
-router.get('/:id/print', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/:id/print', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+  const items = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
 
   const html = `
     <!DOCTYPE html>

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDb } from '../db/db.js';
+import { getDb } from '../db/pg.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
@@ -19,11 +19,11 @@ function formatProduct(row) {
 }
 
 // GET /api/products — all products with specs (single JOIN query)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const db = getDb();
 
   // Single query with JOIN instead of N+1
-  const rows = db.prepare(`
+  const rows = await db.prepare(`
     SELECT p.*, ps.key as spec_key, ps.value as spec_value
     FROM products p
     LEFT JOIN product_specs ps ON p.id = ps.product_id
@@ -47,12 +47,12 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/products/:id — single product with specs
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   const db = getDb();
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   if (!product) return res.status(404).json({ error: 'Product not found' });
 
-  const specs = db.prepare('SELECT key, value FROM product_specs WHERE product_id = ?').all(product.id);
+  const specs = await db.prepare('SELECT key, value FROM product_specs WHERE product_id = ?').all(product.id);
   res.json({
     ...formatProduct(product),
     specs,
@@ -60,13 +60,13 @@ router.get('/:id', (req, res) => {
 });
 
 // GET /api/products/search — smart search
-router.get('/search', (req, res) => {
+router.get('/search', async (req, res) => {
   const db = getDb();
   const { q } = req.query;
   if (!q || q.length < 2) return res.json([]);
 
   const searchTerm = `%${q}%`;
-  const rows = db.prepare(`
+  const rows = await db.prepare(`
     SELECT DISTINCT p.*, ps.key as spec_key, ps.value as spec_value
     FROM products p
     LEFT JOIN product_specs ps ON p.id = ps.product_id
@@ -91,7 +91,7 @@ router.get('/search', (req, res) => {
 });
 
 // GET /api/products/filter — advanced filtering + sorting + pagination
-router.get('/filter', (req, res) => {
+router.get('/filter', async (req, res) => {
   const db = getDb();
   const {
     category, minPrice, maxPrice, inStock,
@@ -125,14 +125,14 @@ router.get('/filter', (req, res) => {
   }
 
   // Count total
-  const countRow = db.prepare(`SELECT COUNT(DISTINCT p.id) as total FROM products p ${whereClause}`).all(...params);
+  const countRow = await db.prepare(`SELECT COUNT(DISTINCT p.id) as total FROM products p ${whereClause}`).all(...params);
   const total = countRow[0]?.total || 0;
 
   // Paginate
   const offset = (Number(page) - 1) * Number(limit);
   params.push(Number(limit), offset);
 
-  const rows = db.prepare(`
+  const rows = await db.prepare(`
     SELECT DISTINCT p.* FROM products p ${whereClause}
     ORDER BY ${orderBy}
     LIMIT ? OFFSET ?
@@ -148,34 +148,34 @@ router.get('/filter', (req, res) => {
 });
 
 // POST /api/products — create product (auth required)
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { name, slug, categoryId, price, oldPrice, sku, image, description, inStock, rating, reviews, specs } = req.body;
   if (!name || !slug || !price || !sku) {
     return res.status(400).json({ error: 'name, slug, price, sku are required' });
   }
 
   const db = getDb();
-  const existing = db.prepare('SELECT id FROM products WHERE slug = ? OR sku = ?').get(slug, sku);
+  const existing = await db.prepare('SELECT id FROM products WHERE slug = ? OR sku = ?').get(slug, sku);
   if (existing) {
     return res.status(409).json({ error: 'Product with this slug or SKU already exists' });
   }
 
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO products (name, slug, category_id, price, old_price, sku, image, description, in_stock, rating, reviews)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(name, slug, categoryId, price, oldPrice || null, sku, image || '', description || '', inStock ? 1 : 0, rating || 0, reviews || 0);
 
   // Insert specs
   if (specs && Array.isArray(specs)) {
-    const insertSpec = db.prepare('INSERT INTO product_specs (product_id, key, value) VALUES (?, ?, ?)');
+    const insertSpec = await db.prepare('INSERT INTO product_specs (product_id, key, value) VALUES (?, ?, ?)');
     const insertSpecs = db.transaction((s) => {
       for (const sp of s) insertSpec.run(result.lastInsertRowid, sp.key, sp.value);
     });
     insertSpecs(specs);
   }
 
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
-  const productSpecs = db.prepare('SELECT key, value FROM product_specs WHERE product_id = ?').all(result.lastInsertRowid);
+  const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
+  const productSpecs = await db.prepare('SELECT key, value FROM product_specs WHERE product_id = ?').all(result.lastInsertRowid);
 
   res.status(201).json({
     ...product,
@@ -187,14 +187,14 @@ router.post('/', requireAuth, (req, res) => {
 });
 
 // PUT /api/products/:id — update product (auth required)
-router.put('/:id', requireAuth, (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Product not found' });
 
   const { name, slug, categoryId, price, oldPrice, sku, image, description, inStock, rating, reviews, specs } = req.body;
 
-  db.prepare(`
+  await db.prepare(`
     UPDATE products SET name = ?, slug = ?, category_id = ?, price = ?, old_price = ?, sku = ?, image = ?, description = ?, in_stock = ?, rating = ?, reviews = ?
     WHERE id = ?
   `).run(
@@ -214,16 +214,16 @@ router.put('/:id', requireAuth, (req, res) => {
 
   // Replace specs if provided
   if (specs && Array.isArray(specs)) {
-    db.prepare('DELETE FROM product_specs WHERE product_id = ?').run(req.params.id);
-    const insertSpec = db.prepare('INSERT INTO product_specs (product_id, key, value) VALUES (?, ?, ?)');
+    await db.prepare('DELETE FROM product_specs WHERE product_id = ?').run(req.params.id);
+    const insertSpec = await db.prepare('INSERT INTO product_specs (product_id, key, value) VALUES (?, ?, ?)');
     const insertSpecs = db.transaction((s) => {
       for (const sp of s) insertSpec.run(req.params.id, sp.key, sp.value);
     });
     insertSpecs(specs);
   }
 
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
-  const productSpecs = db.prepare('SELECT key, value FROM product_specs WHERE product_id = ?').all(req.params.id);
+  const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  const productSpecs = await db.prepare('SELECT key, value FROM product_specs WHERE product_id = ?').all(req.params.id);
 
   res.json({
     ...product,
@@ -235,15 +235,15 @@ router.put('/:id', requireAuth, (req, res) => {
 });
 
 // DELETE /api/products/:id — delete product (admin only)
-router.delete('/:id', requireAuth, requireRole('admin'), (req, res) => {
+router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const db = getDb();
-    const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
+    const existing = await db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Product not found' });
 
-    db.prepare('DELETE FROM product_specs WHERE product_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM order_items WHERE product_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM product_specs WHERE product_id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM order_items WHERE product_id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
 
     res.json({ message: 'Product deleted' });
   } catch (err) {

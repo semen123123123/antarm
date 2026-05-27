@@ -268,8 +268,8 @@ export default function Checkout() {
         size: item.size || null,
       }));
 
-      // 1. Initialize payment via CloudPayments
-      const paymentRes = await fetch('/api/init-payment', {
+      // 1. Initialize payment via RoboKassa
+      const paymentRes = await fetch('/api/payments/init-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,13 +1,13 @@
-import { getDb } from '../db/db.js';
+import { getDb } from '../db/pg.js';
 
 /**
  * Middleware: logs all admin actions to activity_logs table
  * Captures: user_id, action, entity_type, entity_id, old/new values, IP
  */
-export function logActivity(req, res, next) {
+export async function logActivity(req, res, next) {
   const originalJson = res.json.bind(res);
 
-  res.json = function(body) {
+  res.json = async function(body) {
     // Only log successful mutations
     if (res.statusCode >= 200 && res.statusCode < 300 && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       try {
@@ -37,7 +37,7 @@ export function logActivity(req, res, next) {
         if (newValue && newValue.length > 2000) newValue = newValue.substring(0, 2000) + '...';
         if (oldValue && oldValue.length > 2000) oldValue = oldValue.substring(0, 2000) + '...';
 
-        db.prepare(`
+        await db.prepare(`
           INSERT INTO activity_logs (user_id, action, entity_type, entity_id, old_value, new_value, ip_address, user_agent)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).run(

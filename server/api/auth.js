@@ -1,21 +1,21 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { getDb } from '../db/db.js';
+import { getDb } from '../db/pg.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
   const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+  const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email);
   if (!user) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
@@ -43,7 +43,7 @@ router.post('/login', (req, res) => {
 });
 
 // POST /api/auth/signup — public registration
-router.post('/signup', (req, res) => {
+router.post('/signup', async (req, res) => {
   const { email, password, name } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -53,13 +53,13 @@ router.post('/signup', (req, res) => {
   }
 
   const db = getDb();
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existing) {
     return res.status(409).json({ error: 'User with this email already exists' });
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
-  const result = db.prepare(
+  const result = await db.prepare(
     'INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)'
   ).run(email, passwordHash, 'user', name || email.split('@')[0]);
 
@@ -81,7 +81,7 @@ router.post('/signup', (req, res) => {
 });
 
 // POST /api/auth/register (admin only)
-router.post('/register', requireAuth, requireRole('admin'), (req, res) => {
+router.post('/register', requireAuth, requireRole('admin'), async (req, res) => {
   const { email, password, name } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -91,13 +91,13 @@ router.post('/register', requireAuth, requireRole('admin'), (req, res) => {
   }
 
   const db = getDb();
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existing) {
     return res.status(409).json({ error: 'User with this email already exists' });
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
-  const result = db.prepare(
+  const result = await db.prepare(
     'INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)'
   ).run(email, passwordHash, req.body.role || 'admin', name || '');
 
@@ -119,7 +119,7 @@ router.post('/register', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // GET /api/auth/me — validate current token
-router.get('/me', requireAuth, (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   res.json({ user: req.user });
 });
 

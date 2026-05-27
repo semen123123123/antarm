@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDb } from '../db/db.js';
+import { getDb } from '../db/pg.js';
 import nodemailer from 'nodemailer';
 
 const router = Router();
@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
     }
 
     const db = getDb();
-    const stmt = db.prepare('INSERT INTO messages (name, email, phone, message) VALUES (?, ?, ?, ?)');
+    const stmt = await db.prepare('INSERT INTO messages (name, email, phone, message) VALUES (?, ?, ?, ?)');
     stmt.run(name, email || null, phone || null, message);
 
     // Отправка email-уведомления, если настроено
@@ -58,16 +58,16 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/contact — получить все заявки (для админ-панели)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const db = getDb();
-  const messages = db.prepare('SELECT * FROM messages ORDER BY created_at DESC').all();
+  const messages = await db.prepare('SELECT * FROM messages ORDER BY created_at DESC').all();
   res.json(messages);
 });
 
 // PATCH /api/contact/:id/read — отметить как прочитано
-router.patch('/:id/read', (req, res) => {
+router.patch('/:id/read', async (req, res) => {
   const db = getDb();
-  db.prepare('UPDATE messages SET is_read = 1 WHERE id = ?').run(req.params.id);
+  await db.prepare('UPDATE messages SET is_read = 1 WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 

@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { getDb } from '../../db/db.js';
+import { getDb } from '../../db/pg.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/admin/licenses — all license verifications
-router.get('/', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
   const { verified, expiring } = req.query;
 
@@ -18,7 +18,7 @@ router.get('/', requireAuth, requireRole('admin'), (req, res) => {
 
   const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
 
-  const licenses = db.prepare(`
+  const licenses = await db.prepare(`
     SELECT lv.*, u.name as user_name, u.email as user_email,
            vb.name as verified_by_name
     FROM license_verifications lv
@@ -32,23 +32,23 @@ router.get('/', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // PUT /api/admin/licenses/:id/verify — verify/reject license
-router.put('/:id/verify', requireAuth, requireRole('admin'), (req, res) => {
+router.put('/:id/verify', requireAuth, requireRole('admin'), async (req, res) => {
   const { verified, notes, expiryDate } = req.body;
   if (typeof verified !== 'boolean') {
     return res.status(400).json({ error: 'verified (boolean) is required' });
   }
 
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM license_verifications WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT * FROM license_verifications WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'License not found' });
 
-  db.prepare(`
+  await db.prepare(`
     UPDATE license_verifications
     SET verified = ?, verified_by = ?, notes = ?, expiry_date = ?
     WHERE id = ?
   `).run(verified ? 1 : 0, req.user.id, notes || existing.notes, expiryDate || existing.expiry_date, req.params.id);
 
-  const license = db.prepare(`
+  const license = await db.prepare(`
     SELECT lv.*, u.name as user_name, u.email as user_email
     FROM license_verifications lv
     JOIN users u ON lv.user_id = u.id
@@ -59,9 +59,9 @@ router.put('/:id/verify', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // GET /api/admin/licenses/expiring — licenses expiring within 30 days
-router.get('/expiring', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/expiring', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
-  const licenses = db.prepare(`
+  const licenses = await db.prepare(`
     SELECT lv.*, u.name as user_name, u.email as user_email
     FROM license_verifications lv
     JOIN users u ON lv.user_id = u.id

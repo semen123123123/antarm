@@ -25,18 +25,12 @@ import adminProductsRoutes from './api/admin/products.js';
 import adminLogsRoutes from './api/admin/logs.js';
 import adminLicensesRoutes from './api/admin/licenses.js';
 import { logActivity } from './middleware/activityLogger.js';
-import { getDb } from './db/db.js';
+import { getDb, initSchema } from './db/pg.js';
 
 dotenv.config();
 
 // Auto-init schema
-try {
-  const schema = fs.readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'db', 'schema.sql'), 'utf-8');
-  getDb().exec(schema);
-  console.log('✓ Schema synced');
-} catch (e) {
-  console.error('Schema init error:', e.message);
-}
+initSchema();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -125,7 +119,7 @@ if (isProd) {
   if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
     // SPA fallback — all non-API routes serve index.html
-    app.get('*', (_req, res) => {
+    app.get('/{*path}', (_req, res) => {
       res.sendFile(join(distPath, 'index.html'));
     });
   }
@@ -140,22 +134,30 @@ process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Rejection:', reason);
 });
 
-// Start server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 API: http://localhost:${PORT}/api/health`);
-  console.log(`🛡️  Rate limiting disabled for admin access`);
-  if (isProd) {
-    console.log(`🌐 Serving frontend from dist/ (production)`);
-  }
-});
+// Vercel export (Serverless Function)
+const isVercel = process.env.VERCEL === '1';
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  server.close(() => process.exit(0));
-});
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  server.close(() => process.exit(0));
-});
+if (!isVercel) {
+  // Start server (standalone mode)
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📊 API: http://localhost:${PORT}/api/health`);
+    console.log(`🛡️  Rate limiting disabled for admin access`);
+    if (isProd) {
+      console.log(`🌐 Serving frontend from dist/ (production)`);
+    }
+  });
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...');
+    server.close(() => process.exit(0));
+  });
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully...');
+    server.close(() => process.exit(0));
+  });
+}
+
+// Export for Vercel Serverless Function
+export default app;

@@ -1,28 +1,28 @@
 import { Router } from 'express';
-import { getDb } from '../../db/db.js';
+import { getDb } from '../../db/pg.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/admin/analytics/dashboard — real-time metrics
-router.get('/dashboard', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/dashboard', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   // Revenue this month
-  const revenueRow = db.prepare(`
+  const revenueRow = await db.prepare(`
     SELECT COALESCE(SUM(total), 0) as revenue, COUNT(*) as order_count
     FROM orders WHERE created_at >= ? AND status != 'отменён'
   `).get(monthStart);
 
   // Conversion rate (orders / unique visitors — simulated)
-  const totalOrders = db.prepare("SELECT COUNT(*) as count FROM orders").get();
+  const totalOrders = await db.prepare("SELECT COUNT(*) as count FROM orders").get();
   const conversionRate = totalOrders.count > 0 ? ((totalOrders.count / Math.max(totalOrders.count * 8, 1)) * 100).toFixed(2) : '0';
 
   // Top 5 products
-  const topProducts = db.prepare(`
+  const topProducts = await db.prepare(`
     SELECT oi.product_name, SUM(oi.quantity) as total_qty, SUM(oi.quantity * oi.price) as total_revenue
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
@@ -33,14 +33,14 @@ router.get('/dashboard', requireAuth, requireRole('admin'), (req, res) => {
   `).all();
 
   // Orders by status
-  const ordersByStatus = db.prepare(`
+  const ordersByStatus = await db.prepare(`
     SELECT status, COUNT(*) as count, SUM(total) as revenue
     FROM orders
     GROUP BY status
   `).all();
 
   // Daily revenue (last 7 days)
-  const dailyRevenue = db.prepare(`
+  const dailyRevenue = await db.prepare(`
     SELECT DATE(created_at) as date, COUNT(*) as orders, SUM(total) as revenue
     FROM orders
     WHERE created_at >= ? AND status != 'отменён'
@@ -50,25 +50,25 @@ router.get('/dashboard', requireAuth, requireRole('admin'), (req, res) => {
 
   // New orders today
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-  const newOrdersToday = db.prepare(
+  const newOrdersToday = await db.prepare(
     "SELECT COUNT(*) as count FROM orders WHERE created_at >= ?"
   ).get(todayStart);
 
   // Recent orders
-  const recentOrders = db.prepare(`
+  const recentOrders = await db.prepare(`
     SELECT id, customer_name, total, status, created_at
     FROM orders ORDER BY created_at DESC LIMIT 5
   `).all();
 
   // Low stock products
-  const lowStock = db.prepare(`
+  const lowStock = await db.prepare(`
     SELECT id, name, in_stock, stock_status
     FROM products WHERE in_stock = 0 OR stock_status = 'pre_order'
     LIMIT 5
   `).all();
 
   // Expiring licenses (ФЗ-150)
-  const expiringLicenses = db.prepare(`
+  const expiringLicenses = await db.prepare(`
     SELECT lv.id, lv.license_number, lv.expiry_date, u.name as user_name, u.email
     FROM license_verifications lv
     JOIN users u ON lv.user_id = u.id
@@ -102,7 +102,7 @@ router.get('/dashboard', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // GET /api/admin/analytics/sales — sales by period
-router.get('/sales', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/sales', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
   const { period = '30d' } = req.query;
 
@@ -116,7 +116,7 @@ router.get('/sales', requireAuth, requireRole('admin'), (req, res) => {
     default: dateFilter = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
   }
 
-  const sales = db.prepare(`
+  const sales = await db.prepare(`
     SELECT DATE(created_at) as date, COUNT(*) as orders, SUM(total) as revenue,
            AVG(total) as avg_order
     FROM orders
@@ -125,7 +125,7 @@ router.get('/sales', requireAuth, requireRole('admin'), (req, res) => {
     ORDER BY date
   `).all(dateFilter);
 
-  const total = db.prepare(`
+  const total = await db.prepare(`
     SELECT COUNT(*) as orders, SUM(total) as revenue, AVG(total) as avg_order,
            MIN(total) as min_order, MAX(total) as max_order
     FROM orders
@@ -136,11 +136,11 @@ router.get('/sales', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // GET /api/admin/analytics/top-products
-router.get('/top-products', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/top-products', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
   const { limit = 10 } = req.query;
 
-  const topProducts = db.prepare(`
+  const topProducts = await db.prepare(`
     SELECT p.id, p.name, p.sku, p.price, p.category_id,
            SUM(oi.quantity) as total_sold,
            SUM(oi.quantity * oi.price) as total_revenue
@@ -157,20 +157,20 @@ router.get('/top-products', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // GET /api/admin/analytics/export — CSV export
-router.get('/export', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/export', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
   const { type = 'orders' } = req.query;
 
   let data, headers;
 
   if (type === 'orders') {
-    data = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
+    data = await db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
     headers = ['id', 'customer_name', 'customer_email', 'customer_phone', 'total', 'status', 'created_at'];
   } else if (type === 'products') {
-    data = db.prepare('SELECT * FROM products').all();
+    data = await db.prepare('SELECT * FROM products').all();
     headers = ['id', 'name', 'sku', 'price', 'in_stock', 'category_id', 'created_at'];
   } else if (type === 'customers') {
-    data = db.prepare('SELECT id, name, email, phone, total_spent, loyalty_points, created_at FROM users WHERE role = "customer" OR role = "moderator"').all();
+    data = await db.prepare('SELECT id, name, email, phone, total_spent, loyalty_points, created_at FROM users WHERE role = "customer" OR role = "moderator"').all();
     headers = ['id', 'name', 'email', 'phone', 'total_spent', 'loyalty_points', 'created_at'];
   } else {
     return res.status(400).json({ error: 'Invalid export type' });

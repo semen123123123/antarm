@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { getDb } from '../../db/db.js';
+import { getDb } from '../../db/pg.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/admin/products — list with pagination
-router.get('/', requireAuth, requireRole('admin'), (req, res) => {
+router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
   const { page = 1, limit = 20, search, category, inStock } = req.query;
 
@@ -20,10 +20,10 @@ router.get('/', requireAuth, requireRole('admin'), (req, res) => {
   const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
   const offset = (Number(page) - 1) * Number(limit);
 
-  const countRow = db.prepare(`SELECT COUNT(*) as total FROM products p ${whereClause}`).all(...params);
+  const countRow = await db.prepare(`SELECT COUNT(*) as total FROM products p ${whereClause}`).all(...params);
   const total = countRow[0]?.total || 0;
 
-  const products = db.prepare(`
+  const products = await db.prepare(`
     SELECT p.*, c.name as category_name
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id
@@ -36,7 +36,7 @@ router.get('/', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // POST /api/admin/products — create
-router.post('/', requireAuth, requireRole('admin'), (req, res) => {
+router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   const {
     name, slug, categoryId, price, oldPrice, sku, image, images, description,
     inStock, stockStatus, rating, reviews, season, material, brand,
@@ -49,10 +49,10 @@ router.post('/', requireAuth, requireRole('admin'), (req, res) => {
   }
 
   const db = getDb();
-  const existing = db.prepare('SELECT id FROM products WHERE slug = ? OR sku = ?').get(slug, sku);
+  const existing = await db.prepare('SELECT id FROM products WHERE slug = ? OR sku = ?').get(slug, sku);
   if (existing) return res.status(409).json({ error: 'Product with this slug or SKU already exists' });
 
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO products (
       name, slug, category_id, price, old_price, sku, image, images, description,
       in_stock, stock_status, rating, reviews, season, material, brand,
@@ -71,21 +71,21 @@ router.post('/', requireAuth, requireRole('admin'), (req, res) => {
 
   // Insert specs
   if (specs && Array.isArray(specs)) {
-    const insertSpec = db.prepare('INSERT INTO product_specs (product_id, key, value) VALUES (?, ?, ?)');
+    const insertSpec = await db.prepare('INSERT INTO product_specs (product_id, key, value) VALUES (?, ?, ?)');
     const insertSpecs = db.transaction((s) => {
       for (const sp of s) insertSpec.run(result.lastInsertRowid, sp.key, sp.value);
     });
     insertSpecs(specs);
   }
 
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
+  const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(product);
 });
 
 // PUT /api/admin/products/:id — update
-router.put('/:id', requireAuth, requireRole('admin'), (req, res) => {
+router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Product not found' });
 
   const {
@@ -97,15 +97,15 @@ router.put('/:id', requireAuth, requireRole('admin'), (req, res) => {
 
   // Check slug/sku uniqueness if changed
   if (slug && slug !== existing.slug) {
-    const slugCheck = db.prepare('SELECT id FROM products WHERE slug = ? AND id != ?').get(slug, req.params.id);
+    const slugCheck = await db.prepare('SELECT id FROM products WHERE slug = ? AND id != ?').get(slug, req.params.id);
     if (slugCheck) return res.status(409).json({ error: 'Slug already in use' });
   }
   if (sku && sku !== existing.sku) {
-    const skuCheck = db.prepare('SELECT id FROM products WHERE sku = ? AND id != ?').get(sku, req.params.id);
+    const skuCheck = await db.prepare('SELECT id FROM products WHERE sku = ? AND id != ?').get(sku, req.params.id);
     if (skuCheck) return res.status(409).json({ error: 'SKU already in use' });
   }
 
-  db.prepare(`
+  await db.prepare(`
     UPDATE products SET
       name = ?, slug = ?, category_id = ?, price = ?, old_price = ?, sku = ?,
       image = ?, images = ?, description = ?, in_stock = ?, stock_status = ?,
@@ -134,22 +134,22 @@ router.put('/:id', requireAuth, requireRole('admin'), (req, res) => {
     req.params.id,
   );
 
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   res.json(product);
 });
 
 // DELETE /api/admin/products/:id
-router.delete('/:id', requireAuth, requireRole('admin'), (req, res) => {
+router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
+  const existing = await db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Product not found' });
 
-  db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+  await db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
   res.json({ success: true, id: req.params.id });
 });
 
 // POST /api/admin/products/bulk-update — bulk price/stock update
-router.post('/bulk-update', requireAuth, requireRole('admin'), (req, res) => {
+router.post('/bulk-update', requireAuth, requireRole('admin'), async (req, res) => {
   const { productIds, field, value, operation } = req.body;
   if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
     return res.status(400).json({ error: 'productIds array is required' });
@@ -175,13 +175,13 @@ router.post('/bulk-update', requireAuth, requireRole('admin'), (req, res) => {
 
   const placeholders = productIds.map(() => '?').join(',');
   const stmt = `UPDATE products SET ${field} = ${newValue} WHERE id IN (${placeholders})`;
-  db.prepare(stmt).run(...productIds);
+  await db.prepare(stmt).run(...productIds);
 
   res.json({ success: true, updated: productIds.length });
 });
 
 // POST /api/admin/products/import — CSV import (simulated)
-router.post('/import', requireAuth, requireRole('admin'), (req, res) => {
+router.post('/import', requireAuth, requireRole('admin'), async (req, res) => {
   const { csv } = req.body;
   if (!csv) return res.status(400).json({ error: 'CSV data is required' });
 
@@ -193,7 +193,7 @@ router.post('/import', requireAuth, requireRole('admin'), (req, res) => {
   let imported = 0;
   let errors = [];
 
-  const insertProduct = db.prepare(`
+  const insertProduct = await db.prepare(`
     INSERT OR IGNORE INTO products (name, slug, price, sku, description, in_stock)
     VALUES (?, ?, ?, ?, ?, 1)
   `);
